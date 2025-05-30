@@ -27,19 +27,135 @@
       <!-- Feed Panel -->
       <section class="feed">
         <div class="feed-content">
-          <button class="search-button" @click="searchThreads">
-            Search for new threads
-          </button>
-          <h2>ThreadSpace Feed</h2>
-          <ul>
-            <li
-              v-for="post in posts"
-              :key="post._id"
-              class="post-item"
+          <!-- Action buttons -->
+          <div class="action-buttons">
+            <button 
+              class="search-button" 
+              @click="toggleSearch"
+              :class="{ active: showSearchPanel }"
             >
-              {{ post.title }}
-            </li>
-          </ul>
+              {{ showSearchPanel ? 'Back to Feed' : 'Search for new threads' }}
+            </button>
+            <button 
+              class="create-space-button" 
+              @click="toggleCreateSpace"
+              :class="{ active: showCreateForm }"
+            >
+              {{ showCreateForm ? 'Cancel' : 'Create Space' }}
+            </button>
+          </div>
+
+          <!-- Search Panel -->
+          <div v-if="showSearchPanel" class="search-panel">
+            <h2>Find New Spaces to Join</h2>
+            
+            <div class="search-form">
+              <div class="search-input-container">
+                <input 
+                  v-model="searchQuery"
+                  @input="searchSpaces"
+                  type="text" 
+                  placeholder="Type space name to search..." 
+                  class="search-input"
+                  ref="searchInput"
+                />
+                <div class="search-icon">🔍</div>
+              </div>
+              
+              <p v-if="searchQuery && searchResults.length === 0 && !isSearching" class="no-results">
+                No spaces found matching "{{ searchQuery }}"
+              </p>
+              
+              <div v-if="isSearching" class="loading">Searching...</div>
+            </div>
+
+            <!-- Search Results -->
+            <div v-if="searchResults.length > 0" class="search-results">
+              <h3>Available Spaces ({{ searchResults.length }})</h3>
+              <ul class="results-list">
+                <li
+                  v-for="space in searchResults"
+                  :key="space._id"
+                  class="result-item"
+                  @click="joinSpace(space)"
+                >
+                  <div class="space-info">
+                    <div class="space-header">
+                      <h4 class="space-name">{{ space.name }}</h4>
+                      <span class="member-count">{{ space.members.length }} members</span>
+                    </div>
+                    <p class="space-description">{{ space.description || 'No description available' }}</p>
+                    <div class="space-meta">
+                      <span class="creator">Created by {{ space.creatorId.username }}</span>
+                      <span class="created-date">{{ formatDate(space.createdAt) }}</span>
+                    </div>
+                  </div>
+                  <button class="join-button" @click.stop="joinSpace(space)">
+                    {{ isJoining === space._id ? 'Joining...' : 'Join Space' }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Join Status Messages -->
+            <p v-if="joinError" class="error-message">{{ joinError }}</p>
+            <p v-if="joinSuccess" class="success-message">{{ joinSuccess }}</p>
+          </div>
+
+          <!-- Create Space Form -->
+          <div v-else-if="showCreateForm" class="create-space-form">
+            <h2>Create New Space</h2>
+            <form @submit.prevent="handleCreateSpace" class="space-form">
+              <div class="form-group">
+                <label for="spaceName">Space Name</label>
+                <input 
+                  id="spaceName"
+                  v-model="newSpace.name" 
+                  type="text" 
+                  placeholder="Enter space name" 
+                  required 
+                  class="form-input"
+                />
+              </div>
+              
+              <div class="form-group">
+                <label for="spaceDescription">Description</label>
+                <textarea 
+                  id="spaceDescription"
+                  v-model="newSpace.description" 
+                  placeholder="Describe your space..." 
+                  rows="4"
+                  class="form-textarea"
+                ></textarea>
+              </div>
+              
+              <div class="form-buttons">
+                <button type="submit" class="submit-button" :disabled="isCreating">
+                  {{ isCreating ? 'Creating...' : 'Create Space' }}
+                </button>
+                <button type="button" class="cancel-button" @click="cancelCreateSpace">
+                  Cancel
+                </button>
+              </div>
+            </form>
+            
+            <p v-if="createError" class="error-message">{{ createError }}</p>
+            <p v-if="createSuccess" class="success-message">{{ createSuccess }}</p>
+          </div>
+
+          <!-- Regular Feed Content -->
+          <div v-else>
+            <h2>ThreadSpace Feed</h2>
+            <ul>
+              <li
+                v-for="post in posts"
+                :key="post._id"
+                class="post-item"
+              >
+                {{ post.title }}
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
     </div>
@@ -47,6 +163,7 @@
 </template>
 
 <script>
+import './styles/feed.css'
 import axios from 'axios'
 
 export default {
@@ -54,290 +171,216 @@ export default {
     return {
       username: localStorage.getItem('username') || 'Guest',
       posts: [],
-      spaces: []
+      spaces: [],
+      showCreateForm: false,
+      showSearchPanel: false,
+      isCreating: false,
+      createError: '',
+      createSuccess: '',
+      newSpace: {
+        name: '',
+        description: ''
+      },
+      // Search functionality
+      searchQuery: '',
+      searchResults: [],
+      isSearching: false,
+      searchTimeout: null,
+      joinError: '',
+      joinSuccess: '',
+      isJoining: null
     }
   },
   async mounted() {
     try {
+      // Fetch posts
       const postRes = await axios.get('http://localhost:3001/posts')
       this.posts = postRes.data
     } catch (error) {
+      console.error('Failed to fetch posts:', error)
       this.posts = [
-        { _id: '1', title: 'Welcome to ThreadSpace!' },
-        { _id: '2', title: 'How to use threads effectively' },
-        { _id: '3', title: 'Best practices for community building' },
-        { _id: '4', title: 'Tips for engaging discussions' },
-        { _id: '5', title: 'Managing your thread subscriptions' },
-        { _id: '6', title: 'Advanced search techniques' },
-        { _id: '7', title: 'Customizing your profile' },
-        { _id: '8', title: 'Understanding thread moderation' },
-        { _id: '9', title: 'Creating quality content' },
-        { _id: '10', title: 'Building your network' },
-        { _id: '11', title: 'Thread etiquette guidelines' },
-        { _id: '12', title: 'Using hashtags effectively' },
-        { _id: '13', title: 'Scheduling your posts' },
-        { _id: '14', title: 'Analytics and insights' },
-        { _id: '15', title: 'Mobile app features' }
+        { _id: '1', title: 'Fallback: Welcome to ThreadSpace!' },
+        { _id: '2', title: 'Fallback: Using threads effectively' }
       ]
     }
 
-    this.spaces = [
-      { _id: '1', name: 'General Discussion' },
-      { _id: '2', name: 'Tech Talk' },
-      { _id: '3', name: 'Random Thoughts' },
-      { _id: '4', name: 'Project Updates' },
-      { _id: '5', name: 'Q&A Session' },
-      { _id: '6', name: 'Weekly Digest' },
-      { _id: '7', name: 'Community Events' },
-      { _id: '8', name: 'Feedback Corner' },
-      { _id: '9', name: 'Resource Sharing' },
-      { _id: '10', name: 'Off-topic Chat' },
-      { _id: '11', name: 'News & Updates' },
-      { _id: '12', name: 'Help & Support' },
-      { _id: '13', name: 'Feature Requests' },
-      { _id: '14', name: 'Bug Reports' },
-      { _id: '15', name: 'Success Stories' }
-    ]
+    try {
+      // Fetch user spaces
+      const userId = localStorage.getItem('userId')
+      if (userId) {
+        const spaceRes = await axios.get(`http://localhost:3001/user/${userId}/spaces`)
+        this.spaces = spaceRes.data
+      } else {
+        console.warn('No userId found in localStorage.')
+        this.spaces = []
+      }
+    } catch (error) {
+      console.error('Failed to fetch spaces:', error)
+      this.spaces = []
+    }
   },
   methods: {
     logout() {
       this.$router.push('/login')
     },
-    searchThreads() {
-      this.$router.push('/search')
+    toggleSearch() {
+      this.showSearchPanel = !this.showSearchPanel
+      this.showCreateForm = false
+      if (!this.showSearchPanel) {
+        this.resetSearch()
+      } else {
+        // Focus on search input when panel opens
+        this.$nextTick(() => {
+          if (this.$refs.searchInput) {
+            this.$refs.searchInput.focus()
+          }
+        })
+      }
+    },
+    toggleCreateSpace() {
+      this.showCreateForm = !this.showCreateForm
+      this.showSearchPanel = false
+      this.resetForm()
+    },
+    cancelCreateSpace() {
+      this.showCreateForm = false
+      this.resetForm()
+    },
+    resetForm() {
+      this.newSpace = {
+        name: '',
+        description: ''
+      }
+      this.createError = ''
+      this.createSuccess = ''
+      this.isCreating = false
+    },
+    resetSearch() {
+      this.searchQuery = ''
+      this.searchResults = []
+      this.isSearching = false
+      this.joinError = ''
+      this.joinSuccess = ''
+      this.isJoining = null
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout)
+      }
+    },
+    async searchSpaces() {
+      // Clear previous timeout
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout)
+      }
+      
+      // Clear previous messages
+      this.joinError = ''
+      this.joinSuccess = ''
+      
+      if (!this.searchQuery.trim()) {
+        this.searchResults = []
+        return
+      }
+      
+      this.isSearching = true
+      
+      // Debounce search - wait 300ms after user stops typing
+      this.searchTimeout = setTimeout(async () => {
+        try {
+          const userId = localStorage.getItem('userId')
+          const response = await axios.get(`http://localhost:3001/space/search`, {
+            params: {
+              query: this.searchQuery,
+              userId: userId // To exclude spaces user is already in
+            }
+          })
+          this.searchResults = response.data
+        } catch (error) {
+          console.error('Search failed:', error)
+          this.searchResults = []
+        } finally {
+          this.isSearching = false
+        }
+      }, 300)
+    },
+    async joinSpace(space) {
+      this.isJoining = space._id
+      this.joinError = ''
+      this.joinSuccess = ''
+      
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          this.joinError = 'User not logged in. Please log in again.'
+          return
+        }
+        
+        await axios.post('http://localhost:3001/space/join', {
+          userId: userId,
+          spaceId: space._id
+        })
+        
+        // Add space to user's spaces locally
+        this.spaces.push(space)
+        
+        // Remove from search results
+        this.searchResults = this.searchResults.filter(s => s._id !== space._id)
+        
+        this.joinSuccess = `Successfully joined "${space.name}"!`
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          this.joinSuccess = ''
+        }, 3000)
+        
+      } catch (error) {
+        console.error('Failed to join space:', error)
+        this.joinError = error.response?.data?.error || 'Failed to join space. Please try again.'
+      } finally {
+        this.isJoining = null
+      }
+    },
+    async handleCreateSpace() {
+      this.isCreating = true
+      this.createError = ''
+      this.createSuccess = ''
+
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          this.createError = 'User not logged in. Please log in again.'
+          return
+        }
+
+        const spaceData = {
+          name: this.newSpace.name,
+          description: this.newSpace.description,
+          creatorId: userId
+        }
+
+        const response = await axios.post('http://localhost:3001/space', spaceData)
+        
+        // Add the new space to the user's spaces list
+        this.spaces.push(response.data)
+        
+        this.createSuccess = 'Space created successfully!'
+        
+        // Reset form after 2 seconds
+        setTimeout(() => {
+          this.showCreateForm = false
+          this.resetForm()
+        }, 2000)
+
+      } catch (error) {
+        console.error('Failed to create space:', error)
+        this.createError = error.response?.data?.error || 'Failed to create space. Please try again.'
+      } finally {
+        this.isCreating = false
+      }
+    },
+    formatDate(dateString) {
+      const date = new Date(dateString)
+      return date.toLocaleDateString()
     }
   }
 }
 </script>
-
-<style scoped>
-/* Full Page Wrapper */
-.app {
-  background-color: #1e1e1e;
-  color: #ffffff;
-  min-height: 100vh;
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden; /* Prevent page-level scrolling */
-}
-
-/* 🔝 Top Banner - fixed */
-.top-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #2a2a2a;
-  padding: 0 1.5rem;
-  height: 60px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  gap: 1rem;
-  z-index: 1000;
-}
-
-.top-bar .user {
-  flex: 0 0 auto;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #d1bfff;
-  transform: translateX(+20%);
-}
-
-.top-bar .title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.5rem;
-  font-weight: bold;
-  white-space: nowrap;
-  color: #fff;
-}
-
-.top-bar .logout {
-  flex: 0 0 auto;
-  background: #444;
-  transform: translateX(-20%);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  white-space: nowrap;
-}
-
-.top-bar .logout:hover {
-  background: #666;
-}
-
-/* 🔄 Main Content */
-.main {
-  display: flex;
-  height: 100vh;
-  padding-top: 60px; /* Account for fixed top bar */
-  box-sizing: border-box;
-}
-
-/* Sidebar - independent scrolling */
-.sidebar {
-  width: 280px;
-  background: #2b2b2b;
-  border-right: 1px solid #444;
-  overflow: hidden; /* Hide scrollbar until hover */
-  flex-shrink: 0;
-}
-
-.sidebar:hover {
-  overflow-y: auto; /* Show scrollbar on hover */
-}
-
-.sidebar-content {
-  padding: 1.5rem 1rem;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.sidebar h2 {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  text-align: center;
-  color: #fff;
-  position: sticky;
-  top: 0;
-  background: #2b2b2b;
-  padding: 0.5rem 0;
-  z-index: 10;
-}
-
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.thread-item {
-  background: #383838;
-  border: 1px solid #555;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  width: 100%;
-  text-align: center;
-  box-sizing: border-box;
-  transition: background-color 0.2s ease;
-}
-
-.thread-item:hover {
-  background: #444;
-}
-
-/* 📄 Feed - independent scrolling */
-.feed {
-  flex: 1;
-  background: #2b2b2b;
-  overflow: hidden; /* Hide scrollbar until hover */
-}
-
-.feed:hover {
-  overflow-y: auto; /* Show scrollbar on hover */
-}
-
-.feed-content {
-  padding: 1.5rem;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.search-button {
-  background: #555;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  margin-bottom: 1.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: background-color 0.2s ease;
-}
-
-.search-button:hover {
-  background: #777;
-}
-
-.feed h2 {
-  font-size: 1.4rem;
-  margin-bottom: 1.5rem;
-  color: #fff;
-  position: sticky;
-  top: 0;
-  background: #2b2b2b;
-  padding: 0.5rem 0;
-  z-index: 10;
-}
-
-.feed ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.post-item {
-  background: #383838;
-  border: 1px solid #555;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  box-sizing: border-box;
-}
-
-.post-item:hover {
-  background: #444;
-}
-
-/* Custom scrollbar styling for webkit browsers */
-.sidebar:hover::-webkit-scrollbar,
-.feed:hover::-webkit-scrollbar {
-  width: 8px;
-}
-
-.sidebar:hover::-webkit-scrollbar-track,
-.feed:hover::-webkit-scrollbar-track {
-  background: #2a2a2a;
-}
-
-.sidebar:hover::-webkit-scrollbar-thumb,
-.feed:hover::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 4px;
-}
-
-.sidebar:hover::-webkit-scrollbar-thumb:hover,
-.feed:hover::-webkit-scrollbar-thumb:hover {
-  background: #777;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .main {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    height: 200px;
-  }
-  
-  .feed {
-    flex: 1;
-  }
-}
-</style>
-

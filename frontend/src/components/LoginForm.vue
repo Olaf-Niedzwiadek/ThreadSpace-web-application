@@ -37,6 +37,7 @@
 </template>
 
 <script>
+import './styles/login.css'
 import axios from 'axios'
 
 export default {
@@ -57,6 +58,7 @@ export default {
         })
         this.$emit('login-success', res.data)
         localStorage.setItem('username', res.data.username)
+        localStorage.setItem('userId', res.data.userId)
         this.$router.push('/feed')
       } catch (err) {
         this.error = err.response?.data?.error || 'Login failed'
@@ -65,171 +67,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-/* Full page container with dark theme */
-.login-container {
-  background-color: #1e1e1e;
-  color: #ffffff;
-  min-height: 100vh;
-  font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  box-sizing: border-box;
-}
-
-/* Main login card */
-.login-card {
-  background: #2b2b2b;
-  padding: 3rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 420px;
-  text-align: center;
-  border: 1px solid #444;
-}
-
-/* App title styling */
-.app-title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* Login subtitle */
-.login-title {
-  font-size: 1.8rem;
-  color: #d1bfff;
-  margin-bottom: 2rem;
-  font-weight: 600;
-}
-
-/* Success message */
-.success-message {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.1);
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-}
-
-/* Form container */
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Input fields */
-.form-input {
-  background: #383838;
-  border: 2px solid #555;
-  color: #ffffff;
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  outline: none;
-}
-
-.form-input::placeholder {
-  color: #aaa;
-}
-
-.form-input:focus {
-  border-color: #d1bfff;
-  background: #404040;
-  box-shadow: 0 0 0 3px rgba(209, 191, 255, 0.1);
-}
-
-.form-input:hover {
-  border-color: #666;
-}
-
-/* Login button */
-.login-button {
-  background: #555;
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.login-button:hover {
-  background: #777;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.login-button:active {
-  transform: translateY(0);
-}
-
-/* Error message */
-.error-message {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* Register link */
-.register-link {
-  color: #ccc;
-  font-size: 0.95rem;
-  margin-top: 1rem;
-}
-
-.link {
-  color: #d1bfff;
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-
-.link:hover {
-  color: #fff;
-  text-decoration: underline;
-}
-
-/* Responsive design */
-@media (max-width: 480px) {
-  .login-container {
-    padding: 1rem;
-  }
-  
-  .login-card {
-    padding: 2rem;
-  }
-  
-  .app-title {
-    font-size: 2rem;
-  }
-  
-  .login-title {
-    font-size: 1.5rem;
-  }
-}
-
-/* Loading state for button (optional enhancement) */
-.login-button:disabled {
-  background: #444;
-  cursor: not-allowed;
-  transform: none;
-}
-</style>

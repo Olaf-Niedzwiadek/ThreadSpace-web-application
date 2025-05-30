@@ -24,4 +24,15 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/:userId/spaces', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).populate('spaces');
+    res.json(user.spaces);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch user spaces' });
+  }
+});
+
+
+
 module.exports = router;
