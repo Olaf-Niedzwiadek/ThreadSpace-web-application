@@ -1,43 +1,19 @@
 <template>
-  <div class="container">
-    <h1>🧵 ThreadSpace</h1>
-    <h2>Posts</h2>
-    <ul>
-      <li v-for="post in posts" :key="post._id">
-        {{ post.title }}
-      </li>
-    </ul>
-  </div>
+  <router-view />
 </template>
 
 <script>
-import axios from 'axios'
-
 export default {
-  data() {
-    return {
-      posts: []
-    }
-  },
-  mounted() {
-    axios.get('http://localhost:3001/posts')
-      .then(response => {
-        this.posts = response.data
-      })
-      .catch(error => {
-        console.error('Failed to load posts:', error)
-      })
-  }
+  name: 'App'
 }
 </script>
 
 <style>
+/* Optional: you can apply global styles here */
 body {
+  margin: 0;
+  background-color: #1e1e1e;
+  color: #fff;
   font-family: Arial, sans-serif;
 }
-.container {
-  max-width: 600px;
-  margin: 2rem auto;
-}
 </style>
-
