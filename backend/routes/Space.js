@@ -57,27 +57,29 @@ router.get('/search', async (req, res) => {
   try {
     const { query, userId } = req.query;
     
+    console.log('Search request:', { query, userId }); // Debug log
+   
     if (!query || query.trim().length === 0) {
+      console.log('Empty query, returning empty array');
       return res.json([]);
     }
-    
-    // Find spaces that match the search query (case-insensitive)
-    // and exclude spaces the user is already a member of
+   
+    // Build search conditions
     const searchConditions = {
-      name: { $regex: query, $options: 'i' } // Case-insensitive search
+      name: { $regex: query.trim(), $options: 'i' } // Case-insensitive name search only
     };
     
-    // If userId is provided, exclude spaces where user is already a member
-    if (userId) {
-      searchConditions.members = { $ne: userId };
-    }
-    
+    console.log('Search conditions:', JSON.stringify(searchConditions, null, 2)); // Debug log
+   
     const spaces = await Space.find(searchConditions)
       .populate('creatorId', 'username email')
       .populate('members', 'username')
       .limit(20) // Limit results to 20 for performance
-      .sort({ createdAt: -1 }); // Show newest first
+      .sort({ createdAt: -1 }) // Show newest first
+      .lean(); // Use lean() for better performance
     
+    console.log(`Found ${spaces.length} spaces`); // Debug log
+   
     res.json(spaces);
   } catch (err) {
     console.error('Search error:', err);

@@ -90,9 +90,14 @@
                       <span class="created-date">{{ formatDate(space.createdAt) }}</span>
                     </div>
                   </div>
-                  <button class="join-button" @click.stop="joinSpace(space)">
-                    {{ isJoining === space._id ? 'Joining...' : 'Join Space' }}
-                  </button>
+                  <div class="space-actions" style="display: flex; gap: 8px;">
+                    <button class="join-button view-button" @click.stop="viewSpace(space)">
+                      View
+                    </button>
+                    <button class="join-button" @click.stop="joinSpace(space)">
+                      {{ isJoining === space._id ? 'Joining...' : 'Join Space' }}
+                    </button>
+                  </div>
                 </li>
               </ul>
             </div>
@@ -302,6 +307,12 @@ export default {
         }
       }, 300)
     },
+    viewSpace(space) {
+      // TODO: Implement navigation to space feed
+      console.log('Viewing space:', space.name, space._id)
+      // You can implement the actual navigation logic here later
+      // For example: this.$router.push(`/space/${space._id}`)
+    },
     async joinSpace(space) {
       this.isJoining = space._id
       this.joinError = ''
@@ -314,23 +325,33 @@ export default {
           return
         }
         
-        await axios.post('http://localhost:3001/space/join', {
+        // Check if user is already a member of this space
+        const isAlreadyMember = this.spaces.some(s => s._id === space._id)
+        if (isAlreadyMember) {
+          this.joinError = 'You are already a member of this space.'
+          return
+        }
+        
+        const response = await axios.post('http://localhost:3001/space/join', {
           userId: userId,
           spaceId: space._id
         })
         
-        // Add space to user's spaces locally
-        this.spaces.push(space)
-        
-        // Remove from search results
-        this.searchResults = this.searchResults.filter(s => s._id !== space._id)
-        
-        this.joinSuccess = `Successfully joined "${space.name}"!`
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          this.joinSuccess = ''
-        }, 3000)
+        // Only update UI if the join was successful and user wasn't already a member
+        if (response.status === 200) {
+          // Add space to user's spaces locally
+          this.spaces.push(space)
+          
+          // Remove from search results
+          this.searchResults = this.searchResults.filter(s => s._id !== space._id)
+          
+          this.joinSuccess = `Successfully joined "${space.name}"!`
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            this.joinSuccess = ''
+          }, 3000)
+        }
         
       } catch (error) {
         console.error('Failed to join space:', error)

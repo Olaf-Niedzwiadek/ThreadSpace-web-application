@@ -491,6 +491,11 @@
   line-height: 1.4;
 }
 
+.space-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .space-meta {
   display: flex;
   gap: 1rem;
