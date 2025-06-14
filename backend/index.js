@@ -11,8 +11,8 @@ mongoose.connect('mongodb://localhost:27017/threadspace', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log("✅ MongoDB connected"))
-.catch(err => console.error("❌ MongoDB connection error:", err));
+.then(() => console.log("MongoDB connected"))
+.catch(err => console.error("MongoDB connection error:", err));
 
 app.get('/', (req, res) => res.send('ThreadSpace API is running'));
 
@@ -25,6 +25,9 @@ app.use('/Space', spaceRoutes);
 const authRoutes = require('./routes/auth');
 app.use('/auth', authRoutes);
 
+// NEW: Import and use the Post routes
+const postRoutes = require('./routes/Post'); // ADD THIS LINE
+app.use('/Post', postRoutes); // ADD THIS LINE (Choose a path, /Post is common)
 
 const PORT = 3001;
 app.listen(PORT, () => {

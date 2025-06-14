@@ -559,7 +559,328 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.space-view {
+  background: #383838;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #555;
+}
 
+/* Header section containing title, description, and metadata */
+.space-view-header {
+  border-bottom: 1px solid #555;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Flex container to position the title and back button */
+.space-view-header .header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Main title of the space, using your accent color */
+.space-view-header .space-title {
+  color: #d1bfff;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* "Back" button, styled like your secondary/cancel buttons */
+.space-view-header .back-button {
+  background: #555;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.space-view-header .back-button:hover {
+  background: #777;
+}
+
+/* Space description text styling */
+.space-view-header .space-description {
+  color: #aaa;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+/* Metadata container (creator, members, date) */
+.space-view-header .space-meta {
+  display: flex;
+  flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  color: #999;
+}
+
+/* Individual meta item styling */
+.space-view-header .space-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Make the data part of the meta item stand out */
+.space-view-header .space-meta strong {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Styling for the creator's name to match your theme */
+.space-view-header .space-meta .creator {
+  color: #d1bfff;
+  font-weight: 600;
+}
+
+/* Panel for future posts */
+.posts-panel h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  color: #fff;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #444;
+}
+
+/* Placeholder for when there are no posts, making it look intentional */
+.posts-panel .placeholder-text {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 2rem;
+  background: #2a2a2a; /* A slightly darker background to stand out */
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+/* --- REFINED CSS RULES FOR POSTS AND POST FORMS --- */
+
+/* --- Post Creation Button (inside space-view-header) --- */
+.create-post-button {
+    background-color: #d1bfff; /* Use your accent color */
+    color: #1e1e1e; /* Dark text for contrast */
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px; /* Match other buttons */
+    cursor: pointer;
+    font-size: 0.95rem; /* Match other button font size */
+    font-weight: 600; /* Match other button font weight */
+    margin-top: 15px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    align-self: flex-start;
+    display: block;
+    width: fit-content;
+}
+
+.create-post-button:hover {
+    background-color: #c9b1ff; /* Slightly darker accent on hover */
+    transform: translateY(-1px);
+}
+
+/* --- Create Post Form (appears inside the space view) --- */
+.create-post-form {
+    background-color: #383838; /* Match create space form background */
+    border: 1px solid #555; /* Match existing borders */
+    border-radius: 8px; /* Match existing forms */
+    padding: 2rem; /* Match existing forms padding */
+    margin-top: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Slightly darker shadow for dark theme */
+}
+
+.create-post-form h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem; /* More space for heading */
+    color: #d1bfff; /* Accent color for heading */
+    font-size: 1.4rem; /* Match other form headings */
+    text-align: center;
+}
+
+/* Reusing existing form-group, form-input, form-textarea, form-buttons, submit-button, cancel-button, error-message, success-message styles
+   These are already well-defined in your CSS for dark theme consistency. */
+
+/* --- Posts Panel Container --- */
+.posts-panel {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #444; /* Darker separator line */
+}
+
+.posts-panel h3 {
+    color: #fff; /* White for general headings */
+    margin-bottom: 1.5rem; /* Consistent heading spacing */
+    font-size: 1.4rem; /* Consistent heading size */
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #444; /* Consistent with other panel headings */
+}
+
+.posts-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* --- Individual Post Item (like a Reddit block) --- */
+.post-item {
+    background-color: #383838; /* Match thread items and forms */
+    border: 1px solid #555; /* Match existing borders */
+    border-radius: 6px; /* Match other items */
+    padding: 1rem; /* Consistent padding */
+    margin-bottom: 0.75rem; /* Consistent spacing */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Darker shadow */
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    box-sizing: border-box;
+}
+
+.post-item:hover {
+    background-color: #444; /* Match thread item hover */
+    transform: translateY(-1px);
+}
+
+.post-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px; /* Adjusted gap for better spacing */
+    margin-bottom: 0.75rem; /* Consistent spacing */
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #444; /* Consistent separator */
+}
+
+.post-title {
+    margin: 0;
+    font-size: 1.2rem; /* Slightly smaller for balance */
+    color: #d1bfff; /* Accent color for titles */
+    flex-basis: 100%;
+    margin-bottom: 5px;
+    font-weight: 600; /* Make titles bolder */
+}
+
+.post-author {
+    font-size: 0.9em;
+    color: #aaa; /* Lighter grey for meta text */
+    font-weight: 500; /* Less bold than title */
+}
+
+.post-date {
+    font-size: 0.85em; /* Consistent with other meta dates */
+    color: #888; /* Even lighter grey */
+    margin-left: auto;
+}
+
+.post-body {
+    margin-top: 10px;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    color: #fff; /* White for body text */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.post-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px; /* Consistent rounded corners */
+    margin-top: 10px;
+    margin-bottom: 15px;
+    display: block;
+    object-fit: contain;
+    border: 1px solid #555; /* Subtle border for images */
+}
+
+.post-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #444; /* Consistent separator */
+    justify-content: flex-start;
+}
+
+.vote-button {
+    background-color: #2a2a2a; /* Darker background for buttons */
+    border: 1px solid #555; /* Darker border */
+    border-radius: 20px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.9em; /* Slightly larger font */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+    color: #d1bfff; /* Default color for votes */
+}
+
+
+.vote-button:hover {
+    background-color: #444; /* Darker hover */
+    border-color: #d1bfff; /* Accent border on hover */
+    transform: translateY(-1px);
+}
+
+/* --- Utility Classes (for loading/empty states) --- */
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #d1bfff; /* Accent color for loading */
+    font-style: italic;
+    font-weight: 500;
+}
+
+.placeholder-text {
+    text-align: center;
+    color: #aaa; /* Lighter grey */
+    padding: 2rem; /* Consistent padding */
+    font-style: italic;
+    background: #2a2a2a; /* Slightly darker background to stand out */
+    border-radius: 6px; /* Consistent border radius */
+    margin-top: 1rem;
+    border: 1px solid #444; /* Consistent border */
+}
+
+/* --- NEW CSS FOR ACTIVE VOTE BUTTONS --- */
+
+.vote-button.active-vote {
+    /* General style for an active (clicked) vote button */
+    background-color: #d1bfff; /* Your accent color */
+    color: #1e1e1e; /* Dark text for contrast */
+    border-color: #d1bfff; /* Accent border */
+    transform: translateY(-1px); /* Keep the slight lift */
+    box-shadow: 0 2px 5px rgba(209, 191, 255, 0.3); /* Subtle glow */
+}
+
+/* Specific styles for active upvote/downvote if you want different colors */
+.vote-button.upvote.active-vote {
+    background-color: #4ade80; /* A vibrant green for active upvote */
+    border-color: #4ade80;
+    color: #1e1e1e;
+    box-shadow: 0 2px 5px rgba(74, 222, 128, 0.3);
+}
+
+.vote-button.downvote.active-vote {
+    background-color: #ef4444; /* A vibrant red for active downvote */
+    border-color: #ef4444;
+    color: #1e1e1e;
+    box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
+}
+
+/* Optional: Improve disabled button look */
+.vote-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
 
 
 

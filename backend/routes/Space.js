@@ -86,3 +86,25 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: 'Failed to search spaces' });
   }
 });
+
+// NEW ROUTE: Get a single space by its ID
+router.get('/:id', async (req, res) => {
+  try {
+    const space = await Space.findById(req.params.id)
+      .populate('creatorId', 'username') // We need the creator's username
+      .lean(); // .lean() is good for performance on read-only queries
+
+    if (!space) {
+      return res.status(404).json({ error: 'Space not found' });
+    }
+
+    res.json(space);
+  } catch (err) {
+    console.error('Failed to fetch space:', err);
+    res.status(500).json({ error: 'Failed to fetch space' });
+  }
+});
+
+
+
+

@@ -55,13 +55,18 @@ export default {
         const res = await axios.post('http://localhost:3001/auth/login', {
           email: this.email,
           password: this.password
-        })
-        this.$emit('login-success', res.data)
-        localStorage.setItem('username', res.data.username)
-        localStorage.setItem('userId', res.data.userId)
-        this.$router.push('/feed')
+        });
+
+        // Store token, userId, and username
+        localStorage.setItem('token', res.data.token);      // NEW: Store the token
+        localStorage.setItem('username', res.data.username);
+        localStorage.setItem('userId', res.data.userId);
+
+        this.$emit('login-success', res.data); // Emit success
+        this.$router.push('/feed'); // Redirect to feed
       } catch (err) {
-        this.error = err.response?.data?.error || 'Login failed'
+        console.error('Login error:', err); // Log the full error for debugging
+        this.error = err.response?.data?.error || 'Login failed. Please check your credentials.';
       }
     }
   }
