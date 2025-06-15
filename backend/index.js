@@ -29,6 +29,10 @@ app.use('/auth', authRoutes);
 const postRoutes = require('./routes/Post'); // ADD THIS LINE
 app.use('/Post', postRoutes); // ADD THIS LINE (Choose a path, /Post is common)
 
+const commentRoutes = require('./routes/Comment');
+app.use('/Comment', commentRoutes);
+
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);

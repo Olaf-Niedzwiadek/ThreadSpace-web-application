@@ -1,10 +1,9 @@
-// modelsdb/Post.js
 const mongoose = require('mongoose');
 
 const postSchema = new mongoose.Schema({
     title: {
         type: String,
-        required: true, 
+        required: true,
         trim: true,
         maxlength: 120
     },
@@ -43,12 +42,17 @@ const postSchema = new mongoose.Schema({
     votes: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         type: { type: String, enum: ['upvote', 'downvote'], required: true },
-        _id: false // Prevents Mongoose from creating an _id for subdocuments in this array
+        _id: false
+    }],
+    // --- ADD THIS FIELD ---
+    comments: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Comment'
     }]
+    // --- END ADDITION ---
 });
 
 // Add virtuals for upvoteCount, downvoteCount, and total voteCount
-// These are not stored in the DB but computed on the fly based on the 'votes' array
 postSchema.virtual('upvoteCount').get(function() {
     if (!this.votes) return 0;
     return this.votes.filter(vote => vote.type === 'upvote').length;
@@ -63,21 +67,31 @@ postSchema.virtual('voteCount').get(function() {
     return this.upvoteCount - this.downvoteCount;
 });
 
-// IMPORTANT: Add pre-find middleware to populate author username AND votes.userId
-// This ensures that when you fetch posts (including the updated post after a vote),
-// the author's username and the user IDs within the votes array are included.
+// IMPORTANT: Keep the pre-find middleware for populating author and votes
 postSchema.pre(/^find/, function(next) {
-    this.populate('authorId', 'username'); // Populate the author's username
-    this.populate('spaceId', 'name');
-    this.populate({
-        path: 'votes.userId', // Populate the userId field within each vote object
-        select: 'username'     // Select only the username for the user who voted
-    });
+    this.populate('authorId', 'username profilePicture')
+        .populate('spaceId', 'name')
+        .populate({
+            path: 'comments',
+            populate: {
+                path: 'authorId',
+                select: 'username profilePicture'
+            }
+        })
+        .populate({
+            path: 'comments', // Populate replies for each comment
+            populate: {
+                path: 'replies', // Name of the field in Comment schema for replies
+                populate: {
+                    path: 'authorId',
+                    select: 'username profilePicture'
+                }
+            }
+        });
     next();
 });
 
 // Ensure virtuals are included when converting to JSON/Object
-// This makes sure 'upvoteCount', 'downvoteCount', 'voteCount' are returned
 postSchema.set('toObject', { virtuals: true });
 postSchema.set('toJSON', { virtuals: true });
 
