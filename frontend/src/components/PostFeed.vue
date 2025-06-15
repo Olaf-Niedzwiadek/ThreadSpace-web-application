@@ -25,7 +25,7 @@
 
       <section class="feed">
         <div class="feed-content">
-          <div class="action-buttons" v-if="!viewingSpace && !showCreatePostForm">
+          <div class="action-buttons" v-if="!viewingSpace && !showCreatePostForm && !showUserPosts">
             <button
               class="search-button"
               @click="toggleSearch"
@@ -40,7 +40,17 @@
             >
               {{ showCreateForm ? 'Cancel' : 'Create Space' }}
             </button>
+            <button
+              class="view-my-posts-button"
+              @click="toggleUserPosts"
+            >
+              See your posts
+            </button>
           </div>
+          <div class="action-buttons" v-if="showUserPosts">
+              <button class="search-button" @click="closeUserPostsView">← Back to Feed</button>
+          </div>
+
 
           <div v-if="showSearchPanel" class="search-panel">
             <h2>Find New Spaces to Join</h2>
@@ -250,6 +260,52 @@
             </div>
           </div>
 
+          <div v-else-if="showUserPosts" class="user-posts-panel">
+            <div class="user-posts-header">
+               <h2 class="section-title">Your Posts</h2>
+            </div>
+            <div v-if="isLoadingUserPosts" class="loading">Loading your posts...</div>
+            <div v-else-if="userPosts.length === 0" class="placeholder-text">
+              You haven't created any posts yet.
+            </div>
+            <ul class="posts-list">
+              <li
+                v-for="post in userPosts"
+                :key="post._id"
+                class="post-item"
+              >
+                <div class="post-header">
+                  <h4 class="post-title">{{ post.title }}</h4>
+                  <span class="post-space-name">in <strong @click="viewSpace(post.spaceId)" class="clickable-space-name">{{ post.spaceId.name }}</strong></span>
+                  <span class="post-author">by {{ post.authorId.username }}</span>
+                  <span class="post-date">{{ formatDate(post.createdAt) }}</span>
+                </div>
+                <p class="post-body">{{ post.body }}</p>
+                <img v-if="post.imageUrl" :src="post.imageUrl" class="post-image" alt="Post Image"/>
+                <div class="post-actions">
+                  <button
+                    class="vote-button upvote"
+                    :class="{ 'active-vote': getUserVoteStatus(post) === 'upvote' }"
+                    @click="handleVote(post._id, 'upvote')"
+                    :disabled="!userId || post.authorId._id === userId" >
+                    👍 {{ post.upvoteCount }}
+                  </button>
+                  <button
+                    class="vote-button downvote"
+                    :class="{ 'active-vote': getUserVoteStatus(post) === 'downvote' }"
+                    @click="handleVote(post._id, 'downvote')"
+                    :disabled="!userId || post.authorId._id === userId" >
+                    👎 {{ post.downvoteCount }}
+                  </button>
+                  <button class="edit-button" @click="openEditPostModal(post)">Edit</button>
+                  <button class="delete-button" @click="confirmDeletePost(post)">Delete</button>
+                </div>
+              </li>
+            </ul>
+            <p v-if="deletePostSuccess" class="success-message">{{ deletePostSuccess }}</p>
+            <p v-if="deletePostError" class="error-message">{{ deletePostError }}</p>
+          </div>
+
           <div v-else>
             <h2>ThreadSpace Feed</h2>
             <p v-if="posts.length === 0">No general feed posts available.</p>
@@ -264,6 +320,42 @@
           </div>
         </div>
       </section>
+    </div>
+
+    <div v-if="showEditPostModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Edit Your Post</h3>
+        <p v-if="editPostError" class="error-message">{{ editPostError }}</p>
+        <p v-if="editPostSuccess" class="success-message">{{ editPostSuccess }}</p>
+        <form @submit.prevent="handleEditPostSubmit">
+          <div class="form-group">
+            <label for="editPostBody">Post Body</label>
+            <textarea
+              id="editPostBody"
+              v-model="editPostForm.body"
+              rows="6"
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="editPostImageUrl">Image URL (Optional)</label>
+            <input
+              id="editPostImageUrl"
+              v-model="editPostForm.imageUrl"
+              type="url"
+              class="form-input"
+            />
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="submit-button" :disabled="isUpdatingPost">
+              {{ isUpdatingPost ? 'Saving...' : 'Save Changes' }}
+            </button>
+            <button type="button" class="cancel-button" @click="closeEditPostModal">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -300,7 +392,23 @@ export default {
       postError: '',
       postSuccess: '',
       spacePosts: [],
-      isLoadingPosts: false
+      isLoadingPosts: false,
+
+      // --- NEW DATA PROPERTIES FOR USER POSTS ---
+      showUserPosts: false,         // Controls visibility of "Your Posts" panel
+      userPosts: [],                // Stores posts created by the current user
+      isLoadingUserPosts: false,    // Loading state for user posts
+
+      showEditPostModal: false,     // Controls visibility of the edit modal
+      editingPost: null,            // Stores the post object being edited
+      editPostForm: { body: '', imageUrl: '' }, // Model for the edit form inputs
+      isUpdatingPost: false,        // Loading state for post update
+      editPostError: '',            // Error message for post update
+      editPostSuccess: '',          // Success message for post update
+
+      isDeletingPost: null,         // Stores postId while deletion is in progress
+      deletePostError: '',          // Error message for post deletion
+      deletePostSuccess: ''         // Success message for post deletion
     };
   },
   async mounted() {
@@ -351,6 +459,7 @@ export default {
       this.viewingSpace = null;
       this.showCreatePostForm = false; // Hide post form if visible
       this.resetPostForm(); // Clear post form data
+      this.showUserPosts = false; // Hide user posts if visible
       if (!this.showSearchPanel) {
         this.resetSearch()
       } else {
@@ -367,6 +476,7 @@ export default {
       this.viewingSpace = null;
       this.showCreatePostForm = false; // Hide post form if visible
       this.resetPostForm(); // Clear post form data
+      this.showUserPosts = false; // Hide user posts if visible
       this.resetForm() // Reset space form
     },
     cancelCreateSpace() {
@@ -434,6 +544,7 @@ export default {
       this.postError = ''; // Clear post errors
       this.postSuccess = ''; // Clear post successes
       this.showCreatePostForm = false; // Ensure post creation form is hidden
+      this.showUserPosts = false; // Hide user posts if visible
 
       try {
         const spaceResponse = await axios.get(`http://localhost:3001/space/${space._id}`);
@@ -481,6 +592,7 @@ export default {
       this.showCreateForm = false;
       this.showCreatePostForm = false; // Ensure post creation form is hidden
       this.resetPostForm(); // Clear post form data
+      this.showUserPosts = false; // Hide user posts if visible
     },
 
     async joinSpace(space) {
@@ -686,7 +798,7 @@ export default {
         console.log('Found index in spacePosts:', index);
 
         if (index !== -1) {
-      
+        
         this.spacePosts[index] = updatedPost;
 
         console.log('Post successfully updated in spacePosts at index', index);
@@ -712,6 +824,172 @@ export default {
         vote => vote.userId && vote.userId._id && this.userId && vote.userId._id.toString() === this.userId.toString()
       );
       return userVote ? userVote.type : null;
+    },
+
+    // --- NEW METHODS FOR USER POSTS ---
+
+    toggleUserPosts() {
+      this.showUserPosts = !this.showUserPosts;
+      // Reset other panels
+      this.showSearchPanel = false;
+      this.showCreateForm = false;
+      this.viewingSpace = null;
+      this.showCreatePostForm = false;
+      this.resetPostForm(); // Ensure new post form is clear
+
+      if (this.showUserPosts) {
+        this.fetchUserPosts(); // Fetch posts when entering this view
+      } else {
+        this.userPosts = []; // Clear posts when leaving this view
+        this.deletePostError = ''; // Clear any leftover messages
+        this.deletePostSuccess = '';
+      }
+    },
+
+    closeUserPostsView() {
+      this.showUserPosts = false;
+      this.userPosts = [];
+      this.deletePostError = '';
+      this.deletePostSuccess = '';
+    },
+
+    async fetchUserPosts() {
+      this.isLoadingUserPosts = true;
+      this.userPosts = []; // Clear previous posts
+      this.deletePostError = ''; // Clear any previous errors/successes
+      this.deletePostSuccess = '';
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          this.$router.push('/login'); // Redirect to login if no token
+          return;
+        }
+        const response = await axios.get(`http://localhost:3001/User/${this.userId}/posts`, {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+        this.userPosts = response.data;
+      } catch (error) {
+        console.error('Error fetching user posts:', error);
+        this.deletePostError = error.response?.data?.error || 'Failed to load your posts. Please try again.';
+        if (error.response?.status === 401) {
+          this.logout(); // If unauthorized, log out
+        }
+      } finally {
+        this.isLoadingUserPosts = false;
+      }
+    },
+
+    openEditPostModal(post) {
+      // Store a copy of the post being edited to avoid direct mutation issues
+      this.editingPost = { ...post }; 
+      // Pre-fill the form with current post data
+      this.editPostForm.body = post.body;
+      this.editPostForm.imageUrl = post.imageUrl;
+      this.editPostError = '';
+      this.editPostSuccess = '';
+      this.showEditPostModal = true;
+    },
+
+    closeEditPostModal() {
+      this.showEditPostModal = false;
+      this.editingPost = null;
+      this.editPostForm = { body: '', imageUrl: '' };
+      this.isUpdatingPost = false;
+      this.editPostError = '';
+      this.editPostSuccess = '';
+    },
+
+    async handleEditPostSubmit() {
+      this.isUpdatingPost = true;
+      this.editPostError = '';
+      this.editPostSuccess = '';
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token missing. Please log in again.');
+        }
+
+        // Determine postType based on imageUrl presence, similar to creation
+        const postType = this.editPostForm.imageUrl ? 'image' : 'text';
+
+        const updatedData = {
+          body: this.editPostForm.body,
+          imageUrl: this.editPostForm.imageUrl,
+          postType: postType // Send the determined postType
+        };
+
+        const response = await axios.put(`http://localhost:3001/Post/${this.editingPost._id}`, updatedData, {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+
+        // Update the post in the local userPosts array
+        const index = this.userPosts.findIndex(p => p._id === response.data._id);
+        if (index !== -1) {
+          this.userPosts[index] = response.data; // Vue reactivity handles this directly
+        }
+
+        this.editPostSuccess = 'Post updated successfully!';
+        setTimeout(() => {
+          this.closeEditPostModal();
+        }, 1500);
+
+      } catch (error) {
+        console.error('Failed to update post:', error);
+        this.editPostError = error.response?.data?.error || 'Failed to update post. Please try again.';
+        if (error.response?.status === 401) {
+          this.logout(); // Redirect to login if unauthorized
+        }
+      } finally {
+        this.isUpdatingPost = false;
+      }
+    },
+
+    confirmDeletePost(post) {
+      if (confirm(`Are you sure you want to delete the post titled "${post.title}"? This action cannot be undone.`)) {
+        this.handleDeletePost(post._id);
+      }
+    },
+
+    async handleDeletePost(postId) {
+      this.isDeletingPost = postId;
+      this.deletePostError = '';
+      this.deletePostSuccess = '';
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token missing. Please log in again.');
+        }
+
+        await axios.delete(`http://localhost:3001/Post/${postId}`, {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+
+        // Remove the post from the local userPosts array
+        this.userPosts = this.userPosts.filter(p => p._id !== postId);
+
+        this.deletePostSuccess = 'Post deleted successfully!';
+        // Small timeout for user to see success message, then clear it.
+        setTimeout(() => {
+          this.deletePostSuccess = '';
+        }, 1500);
+
+      } catch (error) {
+        console.error('Failed to delete post:', error);
+        this.deletePostError = error.response?.data?.error || 'Failed to delete post. Please try again.';
+        if (error.response?.status === 401) {
+          this.logout(); // Redirect to login if unauthorized
+        }
+      } finally {
+        this.isDeletingPost = null;
+      }
     }
   }
 }

@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const postSchema = new mongoose.Schema({
     title: {
         type: String,
-        required: true, // It's good practice to mark essential fields as required
+        required: true, 
         trim: true,
         maxlength: 120
     },
@@ -68,6 +68,7 @@ postSchema.virtual('voteCount').get(function() {
 // the author's username and the user IDs within the votes array are included.
 postSchema.pre(/^find/, function(next) {
     this.populate('authorId', 'username'); // Populate the author's username
+    this.populate('spaceId', 'name');
     this.populate({
         path: 'votes.userId', // Populate the userId field within each vote object
         select: 'username'     // Select only the username for the user who voted

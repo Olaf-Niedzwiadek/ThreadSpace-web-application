@@ -1,4 +1,4 @@
-// routes/Post.js (Simplified)
+// routes/Post.js
 const express = require('express');
 const router = express.Router();
 const Post = require('../modelsdb/Post');
@@ -9,7 +9,7 @@ const auth = require('../middleware/auth');
 // Route 1: Create a new post
 router.post('/', auth, async (req, res) => {
     try {
-        const authorId = req.user.id;
+        const authorId = req.user.id; // Get authorId from authenticated user (from auth middleware)
         const { title, body, imageUrl, postType, spaceId } = req.body;
 
         if (!title || !spaceId) {
@@ -29,7 +29,7 @@ router.post('/', auth, async (req, res) => {
             title,
             body,
             imageUrl,
-            postType: postType || (imageUrl ? 'image' : 'text'),
+            postType: postType || (imageUrl ? 'image' : 'text'), // Determine type if not provided
             status: 'published',
             authorId,
             spaceId,
@@ -37,17 +37,19 @@ router.post('/', auth, async (req, res) => {
             createdAt: new Date()
         });
 
-        await newPost.save();
+        await newPost.save(); // This will trigger the pre-save hook if you have one, then the pre-find populate
 
+        // Add post to user's posts array
         await User.findByIdAndUpdate(
             authorId,
             { $push: { posts: newPost._id } },
-            { new: true, useFindAndModify: false }
+            { new: true, useFindAndModify: false } // useFindAndModify is deprecated in newer Mongoose versions
         );
 
-        // Because of the pre-find middleware, newPost is already populated after save.
-        // But doing a findById after save ensures all virtuals are computed before sending.
-        const createdPopulatedPost = await Post.findById(newPost._id); // This will trigger the pre-find populate
+        // Fetch the newly created post with populated authorId and spaceId for response
+        // The Post model's pre-find hook should already handle this if using findById
+        const createdPopulatedPost = await Post.findById(newPost._id);
+
         res.status(201).json(createdPopulatedPost);
     } catch (err) {
         console.error('Error creating post:', err);
@@ -65,7 +67,7 @@ router.get('/space/:spaceId', async (req, res) => {
             return res.status(404).json({ error: 'Space not found.' });
         }
 
-        // The pre-find middleware in Post model will handle all population
+        // The Post model's pre-find middleware will handle all population
         const posts = await Post.find({ spaceId }).sort({ createdAt: -1 });
 
         res.status(200).json(posts);
@@ -79,7 +81,7 @@ router.get('/space/:spaceId', async (req, res) => {
 router.get('/:postId', async (req, res) => {
     try {
         const { postId } = req.params;
-        // The pre-find middleware in Post model will handle all population
+        // The Post model's pre-find middleware will handle all population
         const post = await Post.findById(postId);
 
         if (!post) {
@@ -93,7 +95,45 @@ router.get('/:postId', async (req, res) => {
     }
 });
 
-// Route 5 (Optional: Delete a post)
+// NEW: Route to update a post (edit)
+router.put('/:postId', auth, async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const userId = req.user.id; // User making the request (from auth middleware)
+        const { body, imageUrl } = req.body; // Frontend only sends body and imageUrl for edit
+
+        let post = await Post.findById(postId);
+
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found.' });
+        }
+
+        // Check if the authenticated user is the author of the post
+        if (post.authorId._id.toString() !== userId) { // Compare ObjectId to string
+            return res.status(403).json({ error: 'Not authorized to edit this post.' });
+        }
+
+        // Update post fields
+        if (body !== undefined) post.body = body;
+        if (imageUrl !== undefined) post.imageUrl = imageUrl;
+        // Update postType based on imageUrl if it changes
+        post.postType = post.imageUrl ? 'image' : 'text';
+
+        await post.save();
+
+        // Fetch the updated post with populated fields before sending
+        // The Post model's pre-find hook should already handle this
+        const updatedPopulatedPost = await Post.findById(post._id);
+
+        res.status(200).json(updatedPopulatedPost);
+    } catch (err) {
+        console.error('Error updating post:', err);
+        res.status(500).json({ error: 'Failed to update post. ' + err.message });
+    }
+});
+
+
+// Route 5: Delete a post
 router.delete('/:postId', auth, async (req, res) => {
     try {
         const { postId } = req.params;
@@ -105,12 +145,13 @@ router.delete('/:postId', auth, async (req, res) => {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        if (post.authorId.toString() !== userId) {
+        if (post.authorId._id.toString() !== userId) { // Compare ObjectId to string
             return res.status(403).json({ error: 'Not authorized to delete this post.' });
         }
 
         await Post.findByIdAndDelete(postId);
 
+        // Remove post reference from user's posts array
         await User.findByIdAndUpdate(
             post.authorId,
             { $pull: { posts: post._id } },
@@ -124,27 +165,33 @@ router.delete('/:postId', auth, async (req, res) => {
     }
 });
 
-// NEW: Upvote Post Route
+// Upvote Post Route
 router.put('/:id/upvote', auth, async (req, res) => {
     try {
         const postId = req.params.id;
         const userId = req.user.id;
 
-        let post = await Post.findById(postId); // This will already be populated due to pre-find hook
+        let post = await Post.findById(postId); // Pre-find hook will populate authorId and votes.userId
 
         if (!post) {
             return res.status(404).json({ error: 'Post not found' });
         }
 
+        // Prevent author from voting on their own post
+        if (post.authorId._id.toString() === userId.toString()) { // Compare ObjectId to string
+            return res.status(403).json({ error: 'You cannot vote on your own post.' });
+        }
+
+        // Find existing vote by the user
         const userVoteIndex = post.votes.findIndex(
-            (vote) => vote.userId && vote.userId._id && vote.userId._id.toString() === userId // Check for populated userId._id
+            (vote) => vote.userId && vote.userId._id.toString() === userId.toString() // Correctly check populated userId._id
         );
 
         if (userVoteIndex !== -1) {
             const existingVote = post.votes[userVoteIndex];
 
             if (existingVote.type === 'upvote') {
-                post.votes.splice(userVoteIndex, 1); // Un-upvote
+                post.votes.splice(userVoteIndex, 1); // Un-upvote: remove the vote
             } else {
                 existingVote.type = 'upvote'; // Change from downvote to upvote
             }
@@ -154,9 +201,10 @@ router.put('/:id/upvote', auth, async (req, res) => {
 
         await post.save(); // Save changes to the document
 
-        // After save, refetch the post to ensure virtuals are calculated and everything is populated
-        // (though pre-save hooks usually handle some of this, an explicit find after save is safest for frontend responses)
-        const updatedPopulatedPost = await Post.findById(post._id); // Triggers pre-find populate
+        // Fetch the updated post to ensure virtuals are calculated and everything is populated
+        // The Post model's pre-find hook should already handle this if using findById
+        const updatedPopulatedPost = await Post.findById(post._id);
+
         res.json({ message: 'Vote updated', post: updatedPopulatedPost });
     } catch (err) {
         console.error('Error upvoting post:', err);
@@ -164,27 +212,33 @@ router.put('/:id/upvote', auth, async (req, res) => {
     }
 });
 
-// NEW: Downvote Post Route
+// Downvote Post Route
 router.put('/:id/downvote', auth, async (req, res) => {
     try {
         const postId = req.params.id;
         const userId = req.user.id;
 
-        let post = await Post.findById(postId); // This will already be populated due to pre-find hook
+        let post = await Post.findById(postId); // Pre-find hook will populate authorId and votes.userId
 
         if (!post) {
             return res.status(404).json({ error: 'Post not found' });
         }
 
+        // Prevent author from voting on their own post
+        if (post.authorId._id.toString() === userId.toString()) { // Compare ObjectId to string
+            return res.status(403).json({ error: 'You cannot vote on your own post.' });
+        }
+
+        // Find existing vote by the user
         const userVoteIndex = post.votes.findIndex(
-            (vote) => vote.userId && vote.userId._id && vote.userId._id.toString() === userId // Check for populated userId._id
+            (vote) => vote.userId && vote.userId._id.toString() === userId.toString() // Correctly check populated userId._id
         );
 
         if (userVoteIndex !== -1) {
             const existingVote = post.votes[userVoteIndex];
 
             if (existingVote.type === 'downvote') {
-                post.votes.splice(userVoteIndex, 1); // Un-downvote
+                post.votes.splice(userVoteIndex, 1); // Un-downvote: remove the vote
             } else {
                 existingVote.type = 'downvote'; // Change from upvote to downvote
             }
@@ -194,8 +248,10 @@ router.put('/:id/downvote', auth, async (req, res) => {
 
         await post.save(); // Save changes to the document
 
-        // After save, refetch the post to ensure virtuals are calculated and everything is populated
-        const updatedPopulatedPost = await Post.findById(post._id); // Triggers pre-find populate
+        // Fetch the updated post to ensure virtuals are calculated and everything is populated
+        // The Post model's pre-find hook should already handle this if using findById
+        const updatedPopulatedPost = await Post.findById(post._id);
+
         res.json({ message: 'Vote updated', post: updatedPopulatedPost });
     } catch (err) {
         console.error('Error downvoting post:', err);

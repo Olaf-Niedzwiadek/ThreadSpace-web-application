@@ -15,10 +15,11 @@ module.exports = function(req, res, next) {
   // Verify token
   try {
     // Replace 'yourJwtSecret' with your actual secret from .env or config
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); 
-    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     // Attach user information (e.g., userId) to the request object
-    req.user = decoded.user; 
+    // Assuming decoded.user contains { id: userId } as set during login/registration token creation
+    req.user = decoded.user;
     next(); // Continue to the next middleware/route handler
   } catch (err) {
     res.status(401).json({ msg: 'Token is not valid' });

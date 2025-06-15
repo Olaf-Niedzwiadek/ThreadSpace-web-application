@@ -709,7 +709,7 @@
 }
 
 /* Reusing existing form-group, form-input, form-textarea, form-buttons, submit-button, cancel-button, error-message, success-message styles
-   These are already well-defined in your CSS for dark theme consistency. */
+    These are already well-defined in your CSS for dark theme consistency. */
 
 /* --- Posts Panel Container --- */
 .posts-panel {
@@ -882,27 +882,280 @@
     opacity: 0.6;
 }
 
+/* Feed.css additions */
 
+/* User Posts Button - Adjusted for consistency */
+.view-my-posts-button {
+    background-color: #555; /* Match search/create space buttons */
+    color: white;
+    padding: 0.75rem 1.5rem; /* Match other buttons */
+    border: none;
+    border-radius: 4px; /* Match other buttons */
+    cursor: pointer;
+    font-size: 0.95rem; /* Match other buttons */
+    transition: background-color 0.2s ease;
+    margin-left: 10px; /* Keep spacing */
+}
+
+.view-my-posts-button:hover {
+    background-color: #777; /* Match hover of other secondary buttons */
+}
+
+.view-my-posts-button.active { /* Style for when it's the active view */
+    background: #d1bfff; /* Your accent color */
+    color: #1e1e1e; /* Dark text */
+    transform: translateY(-1px);
+}
+.view-my-posts-button.active:hover {
+    background: #c9b1ff; /* Hover for active state */
+}
+
+
+/* User Posts Panel - Adjusted for consistency */
+.user-posts-panel {
+    background-color: #383838; /* Match other panels like create-space-form, search-panel */
+    padding: 2rem; /* Match other panels */
+    border-radius: 8px; /* Match other panels */
+    border: 1px solid #555; /* Match other panels */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Consistent shadow */
+    max-width: 800px;
+    margin: 20px auto; /* Center it */
+}
+
+.user-posts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem; /* Consistent margin */
+    border-bottom: 1px solid #444; /* Consistent separator */
+    padding-bottom: 15px;
+}
+
+.user-posts-header .section-title {
+    margin: 0;
+    color: #d1bfff; /* Accent color for main titles in panels */
+    font-size: 1.4rem; /* Match other panel headings */
+    text-align: center;
+}
+
+/* Style for the space name within the post item */
+.post-space-name {
+    font-size: 0.9em;
+    color: #aaa; /* Consistent with other meta text */
+    margin-left: 10px;
+}
+
+.clickable-space-name {
+    cursor: pointer;
+    font-weight: bold;
+    color: #d1bfff; /* Make it look like a link, using accent color */
+}
+
+.clickable-space-name:hover {
+    text-decoration: underline;
+}
+
+/* Edit/Delete Buttons for posts - Adjusted for consistency */
+.post-item .edit-button,
+.post-item .delete-button {
+    padding: 6px 12px; /* Keep smaller padding for action buttons */
+    border: none;
+    border-radius: 4px; /* Consistent border-radius */
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-left: 10px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    font-weight: 600; /* Make them bolder */
+}
+
+.post-item .edit-button {
+    background-color: #4CAF50; /* A slightly softer green */
+    color: white;
+}
+
+.post-item .edit-button:hover {
+    background-color: #45a049;
+    transform: translateY(-1px);
+}
+
+.post-item .delete-button {
+    background-color: #f44336; /* A slightly softer red */
+    color: white;
+}
+
+.post-item .delete-button:hover {
+    background-color: #da190b;
+    transform: translateY(-1px);
+}
+
+/* Modal Overlay - Adjusted for consistency */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Darker, more opaque overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #383838; /* Match other forms/panels */
+    padding: 2rem; /* Consistent padding */
+    border-radius: 8px; /* Consistent border-radius */
+    border: 1px solid #555; /* Consistent border */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); /* Darker, more prominent shadow */
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    animation: fadeIn 0.3s ease-out;
+    color: #fff; /* Ensure text inside is white */
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem; /* Consistent margin */
+    color: #d1bfff; /* Accent color for modal headings */
+    font-size: 1.4rem; /* Consistent heading size */
+    text-align: center;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem; /* Consistent gap with other button groups */
+    margin-top: 1.5rem; /* Consistent margin */
+}
+
+/* Reusing form styles for modal - ensure these apply */
+.modal-content .form-group {
+    margin-bottom: 1rem; /* Consistent spacing for form groups */
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 0.5rem; /* Consistent spacing */
+    font-weight: 600; /* Consistent font weight */
+    color: #fff; /* White for labels */
+    font-size: 0.95rem; /* Consistent font size */
+}
+
+.modal-content .form-input,
+.modal-content .form-textarea {
+    width: 100%;
+    padding: 0.75rem; /* Consistent padding */
+    border: 2px solid #555; /* Consistent border */
+    border-radius: 6px; /* Consistent border-radius */
+    font-size: 1rem;
+    box-sizing: border-box;
+    background: #2a2a2a; /* Consistent background */
+    color: #ffffff; /* Consistent text color */
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.modal-content .form-input:focus,
+.modal-content .form-textarea:focus {
+    border-color: #d1bfff; /* Consistent focus style */
+}
+
+.modal-content .form-textarea {
+    resize: vertical;
+    min-height: 80px; /* Consistent min-height */
+}
+
+.modal-content .submit-button {
+    background-color: #d1bfff; /* Accent color for primary action */
+    color: #1e1e1e; /* Dark text */
+    padding: 0.75rem 1.5rem; /* Consistent padding */
+    border: none;
+    border-radius: 6px; /* Consistent border-radius */
+    cursor: pointer;
+    font-size: 0.95rem; /* Consistent font size */
+    font-weight: 600; /* Consistent font weight */
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.modal-content .submit-button:hover:not(:disabled) {
+    background-color: #c9b1ff;
+    transform: translateY(-1px);
+}
+
+.modal-content .submit-button:disabled {
+    background-color: #666; /* Consistent disabled style */
+    color: #999;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.modal-content .cancel-button {
+    background-color: #555; /* Consistent secondary button style */
+    color: white;
+    padding: 0.75rem 1.5rem; /* Consistent padding */
+    border: none;
+    border-radius: 6px; /* Consistent border-radius */
+    cursor: pointer;
+    font-size: 0.95rem; /* Consistent font size */
+    font-weight: 600; /* Consistent font weight */
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.modal-content .cancel-button:hover {
+    background-color: #777;
+    transform: translateY(-1px);
+}
+
+/* Simple fade-in animation for modal */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Error and success messages - Adjusted for dark theme consistency */
+.error-message {
+    color: #ef4444; /* Red accent */
+    background: rgba(239, 68, 68, 0.1); /* Light red background */
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    text-align: center;
+    font-size: 0.9em;
+}
+
+.success-message {
+    color: #4ade80; /* Green accent */
+    background: rgba(74, 222, 128, 0.1); /* Light green background */
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    text-align: center;
+    font-size: 0.9em;
+}
 
 /* Responsive design */
 @media (max-width: 768px) {
   .main {
     flex-direction: column;
   }
-  
+
   .sidebar {
     width: 100%;
     height: 200px;
   }
-  
+
   .feed {
     flex: 1;
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }
-  
+
   .form-buttons {
     flex-direction: column;
   }
