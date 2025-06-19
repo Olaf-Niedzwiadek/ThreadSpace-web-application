@@ -589,6 +589,10 @@
   font-weight: 600;
   margin: 0;
   line-height: 1.2;
+  background-color: #2a2a2a; 
+  padding: 0.5rem 1rem; 
+  border-radius: 8px; 
+  display: inline-block; 
 }
 
 /* "Back" button, styled like your secondary/cancel buttons */

@@ -211,6 +211,7 @@ export default {
       this.resetPostForm(); // Clear post form data
       this.spacePosts = []; // Clear posts when leaving a space view
       this.newCommentBodies = {}; // Clear any pending new comment texts
+      this.showingComments = {};
     },
 
     viewSpaceFromSidebar(space) {
@@ -220,6 +221,7 @@ export default {
       this.showCreatePostForm = false; // Ensure post creation form is hidden
       this.resetPostForm(); // Clear post form data
       this.showUserPosts = false; // Hide user posts if visible
+      this.showingComments = {};
     },
 
     async joinSpace(space) {
@@ -458,14 +460,15 @@ export default {
             }
         }
     },
-
-    // Helper to determine user's current vote status for a post
     getUserVoteStatus(post) {
-      if (!this.userId || !post.votes) return null;
+      const currentUserId = this.userId; 
+
+      if (!currentUserId || !post.votes) return null;
 
       const userVote = post.votes.find(
-        // Ensure vote.userId is an object and has an _id for comparison
-        vote => vote.userId && vote.userId._id && this.userId && vote.userId._id.toString() === this.userId.toString()
+        vote => {
+            return vote.userId && vote.userId.toString() === currentUserId.toString();
+        }
       );
       return userVote ? userVote.type : null;
     },
