@@ -931,6 +931,12 @@
     margin-bottom: 1.5rem; /* Consistent margin */
     border-bottom: 1px solid #444; /* Consistent separator */
     padding-bottom: 15px;
+    color: #d1bfff;
+    line-height: 1.2;
+    background-color: #2a2a2a; 
+    padding: 0.5rem 1rem; 
+    border-radius: 8px; 
+    display: inline-block; 
 }
 
 .user-posts-header .section-title {

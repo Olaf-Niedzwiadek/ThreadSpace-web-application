@@ -259,4 +259,53 @@ router.put('/:id/downvote', auth, async (req, res) => {
     }
 });
 
+router.get('/feed/:userId/today', auth, async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Ensure the authenticated user is requesting their own feed
+        if (req.user.id !== userId) {
+            return res.status(403).json({ error: 'Not authorized to view this feed.' });
+        }
+
+        // 1. Find the user and populate their 'spaces' to get the space IDs they are a member of
+        const user = await User.findById(userId).populate('spaces');
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Extract the IDs of the spaces the user is a member of
+        const memberSpaceIds = user.spaces.map(space => space._id);
+
+        if (memberSpaceIds.length === 0) {
+            return res.status(200).json([]); // Return empty array if user is not in any spaces
+        }
+
+        // 2. Define the start and end of "today" for the query
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0); // Set to the beginning of today (e.g., 2025-06-19 00:00:00)
+
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999); // Set to the end of today (e.g., 2025-06-19 23:59:59.999)
+
+        // 3. Find posts that meet the criteria:
+        //    - Their 'spaceId' is in the 'memberSpaceIds' array
+        //    - 'createdAt' is within today's range
+        //    - Order them by 'createdAt' in ascending order (chronological)
+        //    - The pre-find middleware in Post model will handle the population of authorId and spaceId, comments
+        const feedPosts = await Post.find({
+            spaceId: { $in: memberSpaceIds },
+            createdAt: { $gte: startOfToday, $lte: endOfToday }
+        }).sort({ createdAt: 1 }); // 1 for ascending (oldest first), -1 for descending (newest first)
+
+        res.status(200).json(feedPosts);
+    } catch (err) {
+        console.error('Error fetching feed posts:', err);
+        res.status(500).json({ error: 'Failed to fetch feed posts. ' + err.message });
+    }
+});
+
+
+
 module.exports = router;

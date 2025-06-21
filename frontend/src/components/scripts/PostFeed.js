@@ -5,7 +5,7 @@ export default {
     return {
       username: localStorage.getItem('username') || 'Guest',
       userId: localStorage.getItem('userId') || null,
-      posts: [], // Keep this for general feed, if you eventually use it
+      posts: [], 
       spaces: [],
       showCreateForm: false,
       showSearchPanel: false,
@@ -30,47 +30,53 @@ export default {
       spacePosts: [],
       isLoadingPosts: false,
 
-      // --- NEW DATA PROPERTIES FOR USER POSTS ---
-      showUserPosts: false,       // Controls visibility of "Your Posts" panel
-      userPosts: [],              // Stores posts created by the current user
-      isLoadingUserPosts: false,    // Loading state for user posts
+      showUserPosts: false,       
+      userPosts: [],             
+      isLoadingUserPosts: false,    
 
-      showEditPostModal: false,     // Controls visibility of the edit modal
-      editingPost: null,            // Stores the post object being edited
-      editPostForm: { body: '', imageUrl: '' }, // Model for the edit form inputs
-      isUpdatingPost: false,        // Loading state for post update
-      editPostError: '',            // Error message for post update
-      editPostSuccess: '',          // Success message for post update
+      showEditPostModal: false,     
+      editingPost: null,            
+      editPostForm: { body: '', imageUrl: '' }, 
+      isUpdatingPost: false,        
+      editPostError: '',           
+      editPostSuccess: '',          
 
-      isDeletingPost: null,         // Stores postId while deletion is in progress
-      deletePostError: '',          // Error message for post deletion
-      deletePostSuccess: '',         // Success message for post deletion
+      isDeletingPost: null,         
+      deletePostError: '',          
+      deletePostSuccess: '',        
 
-      // --- NEW DATA PROPERTIES FOR COMMENTS ---
-      newCommentBodies: {}, // Object to store new comment text per post { postId: 'comment text' }
-      replyingToCommentId: null, // Stores the ID of the comment being replied to
-      replyingToCommentAuthor: '', // Stores the author's username of the comment being replied to
-      newReplyBody: '', // Stores the text for a new reply
-      showingComments: {}
+      newCommentBodies: {}, 
+      replyingToCommentId: null, 
+      replyingToCommentAuthor: '',
+      newReplyBody: '', 
+      showingComments: {},
+
+      isLoadingFeed: false, // NEW: Loading state for the daily feed
+      feedError: '',
     };
   },
   async mounted() {
-    // Crucial check: if no userId, redirect to login
-    if (!this.userId) {
-      console.warn('No userId found in localStorage. Redirecting to login.');
-      this.$router.push('/login');
-      return; // Stop execution if no user is logged in
-    }
+  // Crucial check: if no userId, redirect to login
+  if (!this.userId) {
+    console.warn('No userId found in localStorage. Redirecting to login.');
+    this.$router.push('/login');
+    return; // Stop execution if no user is logged in
+  }
 
-    try {
-      // Fetch user spaces - this route typically doesn't need a token, as userId is in the URL
-      const spaceRes = await axios.get(`http://localhost:3001/User/${this.userId}/spaces`);
-      this.spaces = spaceRes.data;
-    } catch (error) {
-      console.error('Failed to fetch spaces:', error);
-      this.spaces = [];
-    }
-  },
+  try {
+    // Fetch user spaces
+    const spaceRes = await axios.get(`http://localhost:3001/User/${this.userId}/spaces`);
+    this.spaces = spaceRes.data;
+
+    // NEW: Fetch daily feed posts
+    await this.fetchDailyFeedPosts(); // Call the new method here
+
+  } catch (error) {
+    console.error('Failed to initialize app data (spaces or feed):', error);
+    this.feedError = 'Failed to load your daily feed. Please try again.'; // Set error for feed
+    this.spaces = []; // Ensure spaces are cleared on error as well
+  }
+},
   methods: {
     logout() {
       // Clear all authentication-related items from localStorage
@@ -212,6 +218,7 @@ export default {
       this.spacePosts = []; // Clear posts when leaving a space view
       this.newCommentBodies = {}; // Clear any pending new comment texts
       this.showingComments = {};
+       this.fetchDailyFeedPosts();
     },
 
     viewSpaceFromSidebar(space) {
@@ -434,6 +441,14 @@ export default {
                 }
             }
 
+            if (!postFound && this.posts) {
+            index = this.posts.findIndex(p => p._id === updatedPost._id);
+                if (index !== -1) {
+                    this.posts[index] = updatedPost;
+                    postFound = true;
+                }
+            }
+
             if (!postFound) {
                 console.warn('Could not find post with ID', updatedPost._id, 'in any relevant array. Consider re-fetching.');
                 if (this.viewingSpace && this.viewingSpace._id) {
@@ -499,6 +514,7 @@ export default {
       this.userPosts = [];
       this.deletePostError = '';
       this.deletePostSuccess = '';
+      this.showingComments = {}
     },
 
     async fetchUserPosts() {
@@ -578,7 +594,7 @@ export default {
         // Update the post in the local userPosts array
         const index = this.userPosts.findIndex(p => p._id === response.data._id);
         if (index !== -1) {
-          this.$set(this.userPosts, index, response.data); // Vue reactivity handles this directly
+          this.userPosts[index] = response.data;
         }
 
         this.editPostSuccess = 'Post updated successfully!';
@@ -723,6 +739,7 @@ export default {
             };
             updateCommentsInArray(this.spacePosts, newComment);
             updateCommentsInArray(this.userPosts, newComment);
+            updateCommentsInArray(this.posts, newComment);
 
             if (parentCommentId) {
                 this.newReplyBody = '';
@@ -797,6 +814,7 @@ export default {
 
         updateCommentInPostArray(this.spacePosts);
         updateCommentInPostArray(this.userPosts);
+        updateCommentInPostArray(this.posts);
 
       } catch (error) {
         console.error(`Error ${type}ing comment:`, error);
@@ -853,6 +871,7 @@ export default {
 
         removeCommentFromPostArray(this.spacePosts);
         removeCommentFromPostArray(this.userPosts);
+        removeCommentFromPostArray(this.posts);
       } catch (error) {
         console.error('Failed to delete comment:', error);
         alert(error.response?.data?.error || 'Failed to delete comment. Please try again.');
@@ -866,5 +885,34 @@ export default {
      toggleComments(postId) {
       this.showingComments[postId] = !this.showingComments[postId];
     },
+
+    async fetchDailyFeedPosts() {
+    this.isLoadingFeed = true;
+    this.feedError = ''; // Clear previous errors
+    this.posts = [];
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        this.$router.push('/login'); // Redirect to login if no token
+        return;
+      }
+
+      const response = await axios.get(`http://localhost:3001/Post/feed/${this.userId}/today`, {
+        headers: {
+          'x-auth-token': token
+        }
+      });
+      console.log("Daily Feed Posts fetched:", response.data);
+      this.posts = response.data; 
+    } catch (error) {
+      console.error('Error fetching daily feed posts:', error);
+      this.feedError = error.response?.data?.error || 'Failed to load daily feed. Please try again.';
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        this.logout();
+      }
+    } finally {
+      this.isLoadingFeed = false;
+    }
+  },
   }
 }

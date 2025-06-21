@@ -558,15 +558,168 @@
           </div>
 
           <div v-else>
-            <h2>ThreadSpace Feed</h2>
-            <p v-if="posts.length === 0">No general feed posts available.</p>
-            <ul>
-              <li
-                v-for="post in posts"
-                :key="post._id"
-                class="post-item"
-              >
-                {{ post.title }} </li>
+            <h2 class="section-title">Your daily ThreadSpace Feed</h2>
+            <div v-if="isLoadingFeed" class="loading">Loading today's posts...</div>
+            <div v-else-if="feedError" class="error-message">{{ feedError }}</div>
+            <div v-else-if="posts.length === 0" class="placeholder-text">
+              No new posts from your joined spaces today.
+            </div>
+            <ul v-else class="posts-list">
+              <li v-for="post in posts" :key="post._id" class="post-item">
+                <div class="post-header">
+                  <h4 class="post-title">{{ post.title }}</h4>
+                  <span class="post-space-name"
+                    >in <strong @click="viewSpace(post.spaceId)" class="clickable-space-name">{{ post.spaceId.name }}</strong></span
+                  >
+                  <span class="post-author">by {{ post.authorId.username }}</span>
+                  <span class="post-date">{{ formatDate(post.createdAt) }}</span>
+                </div>
+                <p class="post-body">{{ post.body }}</p>
+                <img v-if="post.imageUrl" :src="post.imageUrl" class="post-image" alt="Post Image" />
+                <div class="post-actions">
+                  <button
+                    class="vote-button upvote"
+                    :class="{ 'active-vote': getUserVoteStatus(post) === 'upvote' }"
+                    @click="handleVote(post._id, 'upvote')"
+                    :disabled="!userId || post.authorId._id === userId"
+                  >
+                    👍 {{ post.upvoteCount }}
+                  </button>
+                  <button
+                    class="vote-button downvote"
+                    :class="{ 'active-vote': getUserVoteStatus(post) === 'downvote' }"
+                    @click="handleVote(post._id, 'downvote')"
+                    :disabled="!userId || post.authorId._id === userId"
+                  >
+                    👎 {{ post.downvoteCount }}
+                  </button>
+                  <!-- Edit and Delete buttons are typically only for 'Your Posts' view, so they are omitted here for the general feed -->
+                </div>
+
+                <div class="comments-toggle">
+                  <button @click="toggleComments(post._id)" class="show-hide-comments-button">
+                    {{ showingComments[post._id] ? 'Hide Comments' : 'Show Comments' }}
+                  </button>
+                </div>
+
+                <div v-if="showingComments[post._id]" class="comments-section-wrapper">
+                  <div class="comments-section">
+                    <h4>Comments</h4>
+                    <div class="comment-create-form">
+                      <textarea
+                        v-model="newCommentBodies[post._id]"
+                        placeholder="Add a comment..."
+                        rows="3"
+                        class="comment-textarea"
+                      ></textarea>
+                      <button
+                        @click="handleCreateComment(post._id, null, newCommentBodies[post._id])"
+                        class="submit-button"
+                        :disabled="!newCommentBodies[post._id] || newCommentBodies[post._id].trim() === ''"
+                      >
+                        Add Comment
+                      </button>
+                    </div>
+                    <div class="comment-list-container">
+                      <div v-if="post.comments && post.comments.length === 0" class="no-comments-placeholder">
+                        No comments yet. Be the first to comment!
+                      </div>
+                      <div v-else class="comments-wrapper">
+                        <div v-for="comment in post.comments" :key="comment._id" class="comment-item">
+                          <div class="comment-header">
+                            <span class="comment-author"><strong>{{ comment.authorId.username }}</strong></span>
+                            <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
+                          </div>
+                          <p class="comment-body">{{ comment.body }}</p>
+                          <div class="comment-actions">
+                            <button
+                              class="vote-button upvote"
+                              :class="{ 'active-vote': getUserCommentVoteStatus(comment) === 'upvote' }"
+                              @click="handleCommentVote(post._id, comment._id, 'upvote')"
+                              :disabled="userId === comment.authorId._id"
+                            >
+                              👍 {{ comment.upvoteCount }}
+                            </button>
+                            <button
+                              class="vote-button downvote"
+                              :class="{ 'active-vote': getUserCommentVoteStatus(comment) === 'downvote' }"
+                              @click="handleCommentVote(post._id, comment._id, 'downvote')"
+                              :disabled="userId === comment.authorId._id"
+                            >
+                              👎 {{ comment.downvoteCount }}
+                            </button>
+                            <button
+                              v-if="userId === comment.authorId._id"
+                              class="delete-button"
+                              @click="confirmDeleteComment(post._id, comment._id, comment.replies && comment.replies.length > 0)"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              v-if="!comment.parentCommentId && replyingToCommentId !== comment._id"
+                              class="reply-button"
+                              @click="setReplyingToComment(post._id, comment._id, comment.authorId.username)"
+                            >
+                              Reply
+                            </button>
+                          </div>
+
+                          <div v-if="replyingToCommentId === comment._id" class="reply-form-container">
+                            <div class="reply-to-info">Replying to {{ replyingToCommentAuthor }}</div>
+                            <textarea
+                              v-model="newReplyBody"
+                              placeholder="Write your reply..."
+                              rows="3"
+                              class="comment-textarea"
+                            ></textarea>
+                            <div class="reply-form-actions">
+                              <button @click="handleCreateComment(post._id, comment._id, newReplyBody)" class="submit-button">
+                                Submit Reply
+                              </button>
+                              <button @click="cancelReply" class="cancel-button">Cancel</button>
+                            </div>
+                          </div>
+
+                          <div v-if="comment.replies && comment.replies.length > 0" class="comment-replies">
+                            <div v-for="reply in comment.replies" :key="reply._id" class="comment-item is-reply">
+                              <div class="comment-header">
+                                <span class="comment-author"><strong>{{ reply.authorId.username }}</strong></span>
+                                <span class="comment-date">{{ formatDate(reply.createdAt) }}</span>
+                              </div>
+                              <p class="comment-body">{{ reply.body }}</p>
+                              <div class="comment-actions">
+                                <button
+                                  class="vote-button upvote"
+                                  :class="{ 'active-vote': getUserCommentVoteStatus(reply) === 'upvote' }"
+                                  @click="handleCommentVote(post._id, reply._id, 'upvote')"
+                                  :disabled="userId === reply.authorId._id"
+                                >
+                                  👍 {{ reply.upvoteCount }}
+                                </button>
+                                <button
+                                  class="vote-button downvote"
+                                  :class="{ 'active-vote': getUserCommentVoteStatus(reply) === 'downvote' }"
+                                  @click="handleCommentVote(post._id, reply._id, 'downvote')"
+                                  :disabled="userId === reply.authorId._id"
+                                >
+                                  👎 {{ reply.downvoteCount }}
+                                </button>
+                                <button
+                                  v-if="userId === reply.authorId._id"
+                                  class="delete-button"
+                                  @click="confirmDeleteComment(post._id, reply._id, false)"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
             </ul>
           </div>
         </div>
