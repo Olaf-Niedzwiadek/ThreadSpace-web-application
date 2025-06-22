@@ -79,11 +79,10 @@ export default {
           password: this.password
         });
 
-        // Store token, userId, and username
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('username', res.data.username);
         localStorage.setItem('userId', res.data.userId);
-        localStorage.setItem('authProvider', 'local'); // Mark as local auth
+        localStorage.setItem('authProvider', 'local'); 
 
         this.$emit('login-success', res.data);
         this.$router.push('/feed');
@@ -96,11 +95,10 @@ export default {
     async loginWithGoogle() {
       try {
         console.log('Starting Google login...');
-        // Force fresh login by adding prompt parameter
         await this.loginWithRedirect({
           authorizationParams: {
             connection: 'google-oauth2',
-            prompt: 'login' // Forces Google to show login screen
+            prompt: 'login' 
           }
         });
       } catch (err) {
@@ -113,7 +111,6 @@ export default {
 </script>
 
 <style>
-/* Add these styles to your existing login.css */
 .divider {
   text-align: center;
   margin: 20px 0;

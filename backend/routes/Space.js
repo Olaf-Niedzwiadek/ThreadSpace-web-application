@@ -123,12 +123,11 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// NEW ROUTE: Get a single space by its ID
 router.get('/:id', async (req, res) => {
   try {
     const space = await Space.findById(req.params.id)
-      .populate('creatorId', 'username') // We need the creator's username
-      .lean(); // .lean() is good for performance on read-only queries
+      .populate('creatorId', 'username') 
+      .lean(); 
 
     if (!space) {
       return res.status(404).json({ error: 'Space not found' });
@@ -163,7 +162,6 @@ router.post('/:id/remove-member', async (req, res) => {
   const spaceId = req.params.id;
   
   try {
-    // First, verify that the requester is the creator
     const space = await Space.findById(spaceId);
     
     if (!space) {
@@ -174,18 +172,15 @@ router.post('/:id/remove-member', async (req, res) => {
       return res.status(403).json({ error: 'Only the space creator can remove members' });
     }
     
-    // Can't remove the creator
     if (memberId === creatorId) {
       return res.status(400).json({ error: 'Cannot remove the creator from the space' });
     }
     
-    // Remove member from space
     await Space.findByIdAndUpdate(
       spaceId,
       { $pull: { members: memberId } }
     );
     
-    // Remove space from user's spaces
     await User.findByIdAndUpdate(
       memberId,
       { $pull: { spaces: spaceId } }

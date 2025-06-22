@@ -147,7 +147,6 @@
   }
 }
 
-/* Loading state for button (optional enhancement) */
 .register-button:disabled {
   background: #444;
   cursor: not-allowed;

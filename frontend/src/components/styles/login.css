@@ -157,7 +157,6 @@
   }
 }
 
-/* Loading state for button (optional enhancement) */
 .login-button:disabled {
   background: #444;
   cursor: not-allowed;

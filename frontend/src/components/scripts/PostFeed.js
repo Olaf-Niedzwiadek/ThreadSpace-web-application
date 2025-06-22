@@ -58,7 +58,7 @@ export default {
       newReplyBody: '', 
       showingComments: {},
 
-      isLoadingFeed: false, // NEW: Loading state for the daily feed
+      isLoadingFeed: false, 
       feedError: '',
 
       isLeaving: false,
@@ -71,20 +71,17 @@ export default {
     };
   },
   async mounted() {
-  // Crucial check: if no userId, redirect to login
   if (!this.userId) {
     console.warn('No userId found in localStorage. Redirecting to login.');
     this.$router.push('/login');
-    return; // Stop execution if no user is logged in
+    return; 
   }
 
   try {
-    // Fetch user spaces
     const spaceRes = await axios.get(`http://localhost:3001/User/${this.userId}/spaces`);
     this.spaces = spaceRes.data;
 
-    // NEW: Fetch daily feed posts
-    await this.fetchDailyFeedPosts(); // Call the new method here
+    await this.fetchDailyFeedPosts(); 
 
   } catch (error) {
     console.error('Failed to initialize app data (spaces or feed):', error);
@@ -100,7 +97,6 @@ export default {
       console.log('Logout - isAuthenticated:', this.auth0?.isAuthenticated)
       console.log('Logout - user:', this.auth0?.user)
       
-      // Clear localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
       localStorage.removeItem('username');
@@ -122,9 +118,9 @@ export default {
       this.showSearchPanel = !this.showSearchPanel
       this.showCreateForm = false
       this.viewingSpace = null;
-      this.showCreatePostForm = false; // Hide post form if visible
-      this.resetPostForm(); // Clear post form data
-      this.showUserPosts = false; // Hide user posts if visible
+      this.showCreatePostForm = false; 
+      this.resetPostForm(); 
+      this.showUserPosts = false; 
       this.fetchDailyFeedPosts();
       if (!this.showSearchPanel) {
         this.resetSearch()
@@ -140,16 +136,16 @@ export default {
       this.showCreateForm = !this.showCreateForm
       this.showSearchPanel = false
       this.viewingSpace = null;
-      this.showCreatePostForm = false; // Hide post form if visible
-      this.resetPostForm(); // Clear post form data
-      this.showUserPosts = false; // Hide user posts if visible
-      this.resetForm() // Reset space form
+      this.showCreatePostForm = false; 
+      this.resetPostForm(); 
+      this.showUserPosts = false; 
+      this.resetForm() 
     },
     cancelCreateSpace() {
       this.showCreateForm = false
       this.resetForm()
     },
-    resetForm() { // Resets Create Space form
+    resetForm() { 
       this.newSpace = {
         name: '',
         description: ''
@@ -186,7 +182,6 @@ export default {
       
       this.searchTimeout = setTimeout(async () => {
         try {
-          // No token needed for search if backend search route is public
           const response = await axios.get(`http://localhost:3001/space/search`, {
             params: {
               query: this.searchQuery,
@@ -216,8 +211,6 @@ export default {
       try {
         const spaceResponse = await axios.get(`http://localhost:3001/space/${space._id}`);
         this.viewingSpace = spaceResponse.data;
-
-        // Fetch posts for this space
         await this.fetchPostsForSpace(space._id);
         
         this.showSearchPanel = false;
@@ -247,10 +240,10 @@ export default {
       this.viewingSpace = null;
       this.showSearchPanel = false;
       this.showCreateForm = false;
-      this.showCreatePostForm = false; // Ensure post creation form is hidden
-      this.resetPostForm(); // Clear post form data
-      this.spacePosts = []; // Clear posts when leaving a space view
-      this.newCommentBodies = {}; // Clear any pending new comment texts
+      this.showCreatePostForm = false; 
+      this.resetPostForm(); 
+      this.spacePosts = []; 
+      this.newCommentBodies = {}; 
       this.showingComments = {};
        this.fetchDailyFeedPosts();
     },
@@ -309,7 +302,7 @@ export default {
       const confirmed = confirm(`Are you sure you want to leave "${this.viewingSpace.name}"?`);
   
       if (!confirmed) {
-        return; // User clicked "Cancel"
+        return; 
       }
 
       this.isLeaving = true
@@ -321,8 +314,6 @@ export default {
           this.leaveError = 'User not logged in. Please log in again.'
           return
         }
-        
-        // Use viewingSpace which is already available in your component
         const response = await axios.post('http://localhost:3001/space/leave', {
           userId: this.userId,
           spaceId: this.viewingSpace._id
@@ -384,12 +375,10 @@ export default {
         this.isCreating = false
       }
     },
-
-    // NEW: Post-related methods
     toggleCreatePostForm() {
       this.showCreatePostForm = !this.showCreatePostForm;
       if (!this.showCreatePostForm) {
-        this.resetPostForm(); // Clear form if cancelled
+        this.resetPostForm(); 
       }
     },
 
@@ -416,7 +405,7 @@ export default {
       this.postSuccess = '';
 
       try {
-        const token = localStorage.getItem('token'); // Get the token
+        const token = localStorage.getItem('token'); 
         if (!token) {
           this.postError = 'Authentication token missing. Please log in again.';
           this.$router.push('/login'); 
@@ -444,8 +433,7 @@ export default {
           }
         }); 
 
-        // Add the new post to the spacePosts array directly from the response
-        this.spacePosts.unshift(response.data); // Add to the beginning of the array for newest first
+        this.spacePosts.unshift(response.data); 
 
         this.postSuccess = 'Post created successfully!';
         
@@ -566,11 +554,8 @@ export default {
       return userVote ? userVote.type : null;
     },
 
-    // --- NEW METHODS FOR USER POSTS ---
-
     toggleUserPosts() {
       this.showUserPosts = !this.showUserPosts;
-      // Reset other panels
       this.showSearchPanel = false;
       this.showCreateForm = false;
       this.viewingSpace = null;
@@ -598,13 +583,13 @@ export default {
 
     async fetchUserPosts() {
       this.isLoadingUserPosts = true;
-      this.userPosts = []; // Clear previous posts
-      this.deletePostError = ''; // Clear any previous errors/successes
+      this.userPosts = []; 
+      this.deletePostError = ''; 
       this.deletePostSuccess = '';
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          this.$router.push('/login'); // Redirect to login if no token
+          this.$router.push('/login'); 
           return;
         }
         const response = await axios.get(`http://localhost:3001/User/${this.userId}/posts`, {
@@ -617,7 +602,7 @@ export default {
         console.error('Error fetching user posts:', error);
         this.deletePostError = error.response?.data?.error || 'Failed to load your posts. Please try again.';
         if (error.response?.status === 401) {
-          this.logout(); // If unauthorized, log out
+          this.logout(); 
         }
       } finally {
         this.isLoadingUserPosts = false;
@@ -625,9 +610,7 @@ export default {
     },
 
     openEditPostModal(post) {
-      // Store a copy of the post being edited to avoid direct mutation issues
       this.editingPost = { ...post }; 
-      // Pre-fill the form with current post data
       this.editPostForm.body = post.body;
       this.editPostForm.imageUrl = post.imageUrl;
       this.editPostError = '';
@@ -655,7 +638,6 @@ export default {
           throw new Error('Authentication token missing. Please log in again.');
         }
 
-        // Determine postType based on imageUrl presence, similar to creation
         const postType = this.editPostForm.imageUrl ? 'image' : 'text';
 
         const updatedData = {
@@ -670,7 +652,6 @@ export default {
           }
         });
 
-        // Update the post in the local userPosts array
         const index = this.userPosts.findIndex(p => p._id === response.data._id);
         if (index !== -1) {
           this.userPosts[index] = response.data;
@@ -685,7 +666,7 @@ export default {
         console.error('Failed to update post:', error);
         this.editPostError = error.response?.data?.error || 'Failed to update post. Please try again.';
         if (error.response?.status === 401) {
-          this.logout(); // Redirect to login if unauthorized
+          this.logout(); 
         }
       } finally {
         this.isUpdatingPost = false;
@@ -714,13 +695,11 @@ export default {
             'x-auth-token': token
           }
         });
-
-        // Remove the post from the appropriate array based on current view
         if (this.viewingSpace) {
-          // If in space view, remove from spacePosts
+          
           this.spacePosts = this.spacePosts.filter(p => p._id !== postId);
         } else if (this.showUserPosts) {
-          // If in user posts view, remove from userPosts
+          
           this.userPosts = this.userPosts.filter(p => p._id !== postId);
         }
 
@@ -806,16 +785,15 @@ export default {
                         // It's a reply
                         const parentComment = post.comments.find(c => c._id === newCmt.parentCommentId);
                         if (parentComment) {
-                            // Ensure 'replies' array exists. In Vue 3, direct assignment works.
                             if (!parentComment.replies) {
                                 parentComment.replies = []; // Direct assignment
                             }
                             parentComment.replies.push(newCmt);
                         }
                     } else {
-                        // It's a top-level comment
+                        
                         if (!post.comments) {
-                            post.comments = []; // Direct assignment
+                            post.comments = []; 
                         }
                         post.comments.unshift(newCmt);
                     }
@@ -829,8 +807,7 @@ export default {
                 this.newReplyBody = '';
                 this.cancelReply();
             } else {
-                // Direct assignment works in Vue 3 if newCommentBodies is a reactive object
-                if (this.newCommentBodies[postId] !== undefined) { // Check if property exists before assigning
+                if (this.newCommentBodies[postId] !== undefined) { 
                     this.newCommentBodies[postId] = '';
                 }
             }
@@ -866,29 +843,23 @@ export default {
 
         const updatedComment = response.data.comment;
 
-        // Function to update comment in a given array (spacePosts or userPosts)
         const updateCommentInPostArray = (postArray) => {
-            const postIndex = postArray.findIndex(p => p._id === postId); // postId and updatedComment are assumed to be accessible in this scope
+            const postIndex = postArray.findIndex(p => p._id === postId); 
             if (postIndex !== -1) {
                 const post = postArray[postIndex];
 
-                // Find if it's a top-level comment
                 let commentIndex = post.comments.findIndex(c => c._id === updatedComment._id);
 
                 if (commentIndex !== -1) {
-                    // Update top-level comment
-                    // In Vue 3, direct assignment to an array index is reactive
                     post.comments[commentIndex] = updatedComment;
                 } else {
-                    // It might be a reply, search in replies
+                    
                     for (const topComment of post.comments) {
                         if (topComment.replies) {
                             const replyIndex = topComment.replies.findIndex(r => r._id === updatedComment._id);
                             if (replyIndex !== -1) {
-                                // Update the reply
-                                // In Vue 3, direct assignment to an array index is reactive
                                 topComment.replies[replyIndex] = updatedComment;
-                                break; // Found and updated, no need to continue
+                                break; 
                             }
                         }
                     }
@@ -935,7 +906,6 @@ export default {
             if (postIndex !== -1) {
                 const post = postArray[postIndex];
 
-                // Try to remove as a top-level comment
                 const initialCommentLength = post.comments.length;
                 post.comments = post.comments.filter(c => c._id !== commentId);
 
@@ -1031,12 +1001,9 @@ export default {
           creatorId: this.userId // For authorization check
         });
         
-        // Remove from local list
         this.spaceMembers = this.spaceMembers.filter(m => m._id !== memberId);
         
-        // Update the viewingSpace member count
          this.viewingSpace.members = this.viewingSpace.members.filter(m => {
-          // Handle both cases: m could be an ID string or an object with _id
           const memberIdToCompare = typeof m === 'string' ? m : m._id;
           return memberIdToCompare !== memberId;
         });

@@ -5,7 +5,6 @@ require('dotenv').config();
 
 const app = express();
 
-// Enhanced CORS configuration
 app.use(cors({
   origin: [
     'http://localhost:5173',

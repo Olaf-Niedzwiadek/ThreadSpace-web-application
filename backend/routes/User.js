@@ -2,10 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../modelsdb/User');
-const Post = require('../modelsdb/Post'); // <--- NEW: Import Post model
+const Post = require('../modelsdb/Post'); 
 const auth = require('../middleware/auth');
 
-// Route to create a new user (unchanged)
+// Route to create a new user 
 router.post('/', async (req, res) => {
   try {
     const user = new User(req.body);
@@ -13,14 +13,13 @@ router.post('/', async (req, res) => {
     res.status(201).json(user);
   } catch (err) {
     console.error(err);
-    if (err.code === 11000) { // Duplicate key error (e.g., username already exists)
+    if (err.code === 11000) { 
       return res.status(400).json({ error: 'Username already exists. Please choose another.' });
     }
     res.status(400).json({ error: 'Failed to create user' });
   }
 });
 
-// Route to get all users (unchanged, typically not used by frontend directly)
 router.get('/', async (req, res) => {
   try {
     const users = await User.find();
@@ -31,7 +30,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Route to get spaces a specific user is a member of (unchanged)
+// Route to get spaces a specific user is a member of 
 router.get('/:userId/spaces', async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).populate('spaces');
@@ -45,18 +44,14 @@ router.get('/:userId/spaces', async (req, res) => {
   }
 });
 
-// ADJUSTED: Route to get all posts by a specific user
-// The base path for this router in index.js is '/User', so this route becomes /User/:userId/posts
 router.get('/:userId/posts', auth, async (req, res) => {
     try {
-        // Ensure the authenticated user is requesting their own posts
         if (req.user.id !== req.params.userId) {
             return res.status(403).json({ msg: 'Not authorized to view these posts' });
         }
 
-        // The Post model's pre-find hook handles population of authorId and spaceId automatically
         const posts = await Post.find({ authorId: req.params.userId })
-            .sort({ createdAt: -1 }); // Sort by newest first
+            .sort({ createdAt: -1 }); 
 
         res.json(posts);
     } catch (err) {

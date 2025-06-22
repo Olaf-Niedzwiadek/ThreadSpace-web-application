@@ -26,7 +26,6 @@ export default {
 </script>
 
 <style>
-/* Your existing styles */
 body {
   margin: 0;
   background-color: #1e1e1e;
@@ -34,7 +33,6 @@ body {
   font-family: Arial, sans-serif;
 }
 
-/* Loading screen styles */
 .loading-app {
   display: flex;
   flex-direction: column;

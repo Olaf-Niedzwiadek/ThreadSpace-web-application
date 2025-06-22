@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 
 const moderationSchema = new mongoose.Schema({
   moderatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  actionType: String,  // e.g. "removePost", "banUser"
+  actionType: String,  
   reason: String,
-  targetType: String,  // e.g. "post", "comment", "user"
-  targetId: { type: mongoose.Schema.Types.ObjectId }, // reference varies by type
+  targetType: String,  
+  targetId: { type: mongoose.Schema.Types.ObjectId }, 
   timestamp: { type: Date, default: Date.now }
 });
 

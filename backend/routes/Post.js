@@ -9,7 +9,7 @@ const auth = require('../middleware/auth');
 // Route 1: Create a new post
 router.post('/', auth, async (req, res) => {
     try {
-        const authorId = req.user.id; // Get authorId from authenticated user (from auth middleware)
+        const authorId = req.user.id; 
         const { title, body, imageUrl, postType, spaceId } = req.body;
 
         if (!title || !spaceId) {
@@ -29,7 +29,7 @@ router.post('/', auth, async (req, res) => {
             title,
             body,
             imageUrl,
-            postType: postType || (imageUrl ? 'image' : 'text'), // Determine type if not provided
+            postType: postType || (imageUrl ? 'image' : 'text'), 
             status: 'published',
             authorId,
             spaceId,
@@ -37,17 +37,14 @@ router.post('/', auth, async (req, res) => {
             createdAt: new Date()
         });
 
-        await newPost.save(); // This will trigger the pre-save hook if you have one, then the pre-find populate
+        await newPost.save(); 
 
-        // Add post to user's posts array
         await User.findByIdAndUpdate(
             authorId,
             { $push: { posts: newPost._id } },
-            { new: true, useFindAndModify: false } // useFindAndModify is deprecated in newer Mongoose versions
+            { new: true, useFindAndModify: false } 
         );
 
-        // Fetch the newly created post with populated authorId and spaceId for response
-        // The Post model's pre-find hook should already handle this if using findById
         const createdPopulatedPost = await Post.findById(newPost._id);
 
         res.status(201).json(createdPopulatedPost);
@@ -67,7 +64,6 @@ router.get('/space/:spaceId', async (req, res) => {
             return res.status(404).json({ error: 'Space not found.' });
         }
 
-        // The Post model's pre-find middleware will handle all population
         const posts = await Post.find({ spaceId }).sort({ createdAt: -1 });
 
         res.status(200).json(posts);
@@ -81,7 +77,6 @@ router.get('/space/:spaceId', async (req, res) => {
 router.get('/:postId', async (req, res) => {
     try {
         const { postId } = req.params;
-        // The Post model's pre-find middleware will handle all population
         const post = await Post.findById(postId);
 
         if (!post) {
@@ -99,16 +94,14 @@ router.get('/:postId', async (req, res) => {
 router.put('/:postId', auth, async (req, res) => {
     try {
         const { postId } = req.params;
-        const userId = req.user.id; // User making the request (from auth middleware)
-        const { body, imageUrl } = req.body; // Frontend only sends body and imageUrl for edit
+        const userId = req.user.id; 
+        const { body, imageUrl } = req.body; 
 
         let post = await Post.findById(postId);
 
         if (!post) {
             return res.status(404).json({ error: 'Post not found.' });
         }
-
-        // Check if the authenticated user is the author of the post
         if (post.authorId._id.toString() !== userId) { // Compare ObjectId to string
             return res.status(403).json({ error: 'Not authorized to edit this post.' });
         }
@@ -120,9 +113,6 @@ router.put('/:postId', auth, async (req, res) => {
         post.postType = post.imageUrl ? 'image' : 'text';
 
         await post.save();
-
-        // Fetch the updated post with populated fields before sending
-        // The Post model's pre-find hook should already handle this
         const updatedPopulatedPost = await Post.findById(post._id);
 
         res.status(200).json(updatedPopulatedPost);
@@ -212,10 +202,8 @@ router.put('/:id/upvote', auth, async (req, res) => {
             post.votes.push({ userId: userId, type: 'upvote' }); // Add new upvote
         }
 
-        await post.save(); // Save changes to the document
+        await post.save(); 
 
-        // Fetch the updated post to ensure virtuals are calculated and everything is populated
-        // The Post model's pre-find hook should already handle this if using findById
         const updatedPopulatedPost = await Post.findById(post._id);
 
         res.json({ message: 'Vote updated', post: updatedPopulatedPost });
@@ -261,8 +249,6 @@ router.put('/:id/downvote', auth, async (req, res) => {
 
         await post.save(); // Save changes to the document
 
-        // Fetch the updated post to ensure virtuals are calculated and everything is populated
-        // The Post model's pre-find hook should already handle this if using findById
         const updatedPopulatedPost = await Post.findById(post._id);
 
         res.json({ message: 'Vote updated', post: updatedPopulatedPost });
@@ -297,16 +283,11 @@ router.get('/feed/:userId/today', auth, async (req, res) => {
 
         // 2. Define the start and end of "today" for the query
         const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0); // Set to the beginning of today (e.g., 2025-06-19 00:00:00)
+        startOfToday.setHours(0, 0, 0, 0); 
 
         const endOfToday = new Date();
-        endOfToday.setHours(23, 59, 59, 999); // Set to the end of today (e.g., 2025-06-19 23:59:59.999)
+        endOfToday.setHours(23, 59, 59, 999); 
 
-        // 3. Find posts that meet the criteria:
-        //    - Their 'spaceId' is in the 'memberSpaceIds' array
-        //    - 'createdAt' is within today's range
-        //    - Order them by 'createdAt' in ascending order (chronological)
-        //    - The pre-find middleware in Post model will handle the population of authorId and spaceId, comments
         const feedPosts = await Post.find({
             spaceId: { $in: memberSpaceIds },
             createdAt: { $gte: startOfToday, $lte: endOfToday }

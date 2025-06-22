@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
             password: hashed,
             role: 'user',
             status: 'active',
-            authProvider: 'local' // Mark as local auth
+            authProvider: 'local' 
         });
 
         await user.save();
@@ -53,14 +53,12 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Existing POST /login route stays the same
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await User.findOne({ email });
         if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-        // Check if user registered with Auth0
         if (user.authProvider === 'auth0' && !user.password) {
             return res.status(401).json({ error: 'Please login with Google' });
         }
@@ -91,19 +89,15 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// NEW: Auth0 login route
 router.post('/auth0-login', async (req, res) => {
     const { auth0Token, email, name, picture, sub } = req.body;
 
     try {
-        // Here you could verify the Auth0 token if needed
-        // For now, we'll trust the frontend since it's using Auth0's SDK
         
         let user = await User.findOne({ email });
         
         if (!user) {
-            // Create new user from Auth0 data
-            const username = email.split('@')[0]; // Generate unique username
+            const username = email.split('@')[0]; 
             
             user = new User({
                 username,
@@ -112,18 +106,15 @@ router.post('/auth0-login', async (req, res) => {
                 auth0Id: sub,
                 role: 'user',
                 status: 'active'
-                // No password for Auth0 users
             });
             
             await user.save();
         } else if (user.authProvider === 'local') {
-            // User exists with local auth, update to allow Auth0 as well
             user.authProvider = 'both';
             user.auth0Id = sub;
             await user.save();
         }
         
-        // Generate your app's JWT token
         const payload = {
             user: {
                 id: user._id,
