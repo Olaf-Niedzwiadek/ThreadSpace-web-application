@@ -4,7 +4,17 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// Enhanced CORS configuration
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://dev-0vug6eoa43ngvsv2.us.auth0.com'
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 
 mongoose.connect('mongodb://localhost:27017/threadspace', {
@@ -17,7 +27,7 @@ mongoose.connect('mongodb://localhost:27017/threadspace', {
 app.get('/', (req, res) => res.send('ThreadSpace API is running'));
 
 const userRoutes = require('./routes/User');
-app.use('/User', userRoutes); 
+app.use('/User', userRoutes);
 
 const spaceRoutes = require('./routes/Space');
 app.use('/Space', spaceRoutes);
@@ -25,16 +35,13 @@ app.use('/Space', spaceRoutes);
 const authRoutes = require('./routes/auth');
 app.use('/auth', authRoutes);
 
-// NEW: Import and use the Post routes
-const postRoutes = require('./routes/Post'); // ADD THIS LINE
-app.use('/Post', postRoutes); // ADD THIS LINE (Choose a path, /Post is common)
+const postRoutes = require('./routes/Post');
+app.use('/Post', postRoutes);
 
 const commentRoutes = require('./routes/Comment');
 app.use('/Comment', commentRoutes);
-
 
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
-

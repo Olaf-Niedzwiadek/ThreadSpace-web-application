@@ -1,6 +1,13 @@
 import axios from 'axios'
+import { useAuth0 } from '@auth0/auth0-vue'
 
 export default {
+  setup() {
+    const auth0 = useAuth0()
+    return { 
+      auth0
+    }
+  },
   data() {
     return {
       username: localStorage.getItem('username') || 'Guest',
@@ -79,11 +86,29 @@ export default {
 },
   methods: {
     logout() {
-      // Clear all authentication-related items from localStorage
+      const authProvider = localStorage.getItem('authProvider')
+      console.log('Logout - authProvider from localStorage:', authProvider)
+      console.log('Logout - auth0 object:', this.auth0)
+      console.log('Logout - isAuthenticated:', this.auth0?.isAuthenticated)
+      console.log('Logout - user:', this.auth0?.user)
+      
+      // Clear localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
       localStorage.removeItem('username');
-      this.$router.push('/login'); // Redirect to login page
+      localStorage.removeItem('authProvider');
+      
+      if (authProvider === 'auth0' && this.auth0) {
+        console.log('Logging out from Auth0...')
+        this.auth0.logout({
+          logoutParams: {
+            returnTo: window.location.origin + '/login'
+          }
+        })
+      } else {
+        console.log('Local user logout')
+        this.$router.push('/login');
+      }
     },
     toggleSearch() {
       this.showSearchPanel = !this.showSearchPanel
@@ -514,7 +539,8 @@ export default {
       this.userPosts = [];
       this.deletePostError = '';
       this.deletePostSuccess = '';
-      this.showingComments = {}
+      this.showingComments = {},
+      this.fetchDailyFeedPosts();
     },
 
     async fetchUserPosts() {

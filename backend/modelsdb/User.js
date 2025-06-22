@@ -4,34 +4,46 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-    unique: true, // Ensure usernames are unique
+    unique: true,
     trim: true,
     minlength: 3,
     maxlength: 30
   },
-  email: { // Consider making this required and unique too if you use it for login
+  email: {
     type: String,
+    required: true,
+    unique: true,
     trim: true,
     lowercase: true
   },
-  password: { // hashed password
+  password: { 
     type: String,
-    required: true, // Password should be required
-    minlength: 6 // Minimum length for security
+    required: function() {
+      return this.authProvider === 'local';
+    },
+    minlength: 6
   },
-  sessionId: String, // You might not need this if using JWT stateless auth
+  authProvider: {
+    type: String,
+    enum: ['local', 'auth0', 'both'],
+    default: 'local'
+  },
+  auth0Id: {
+    type: String,
+    sparse: true 
+  },
+  sessionId: String,
   role: {
-    type: String, // e.g. "admin", "user"
-    enum: ['user', 'admin'], // Enforce specific roles
+    type: String,
+    enum: ['user', 'admin'],
     default: 'user'
   },
   status: {
-    type: String, // e.g. "active", "banned"
+    type: String,
     enum: ['active', 'banned'],
     default: 'active'
   },
   spaces: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Space' }],
-  // NEW: Array to store ObjectIds of posts created by this user
   posts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
   createdAt: { type: Date, default: Date.now }
 });
