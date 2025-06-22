@@ -60,6 +60,14 @@ export default {
 
       isLoadingFeed: false, // NEW: Loading state for the daily feed
       feedError: '',
+
+      isLeaving: false,
+
+      showMembersModal: false,
+      spaceMembers: [],
+      isLoadingMembers: false,
+      membersError: '',
+      removingMemberId: null,
     };
   },
   async mounted() {
@@ -117,6 +125,7 @@ export default {
       this.showCreatePostForm = false; // Hide post form if visible
       this.resetPostForm(); // Clear post form data
       this.showUserPosts = false; // Hide user posts if visible
+      this.fetchDailyFeedPosts();
       if (!this.showSearchPanel) {
         this.resetSearch()
       } else {
@@ -295,6 +304,50 @@ export default {
         this.isJoining = null
       }
     },
+
+    async leaveSpace() {
+      const confirmed = confirm(`Are you sure you want to leave "${this.viewingSpace.name}"?`);
+  
+      if (!confirmed) {
+        return; // User clicked "Cancel"
+      }
+
+      this.isLeaving = true
+      this.leaveError = ''
+      this.leaveSuccess = ''
+      
+      try {
+        if (!this.userId) {
+          this.leaveError = 'User not logged in. Please log in again.'
+          return
+        }
+        
+        // Use viewingSpace which is already available in your component
+        const response = await axios.post('http://localhost:3001/space/leave', {
+          userId: this.userId,
+          spaceId: this.viewingSpace._id
+        })
+        
+        if (response.status === 200) {
+          // Remove the space from the user's spaces array
+          this.spaces = this.spaces.filter(s => s._id !== this.viewingSpace._id)
+          this.leaveSuccess = `Successfully left "${this.viewingSpace.name}"`
+          
+          // Close the space view and go back to feed after a short delay
+          setTimeout(() => {
+            this.leaveSuccess = ''
+            this.closeSpaceView() // This will take them back to the feed
+          }, 100)
+        }
+        
+      } catch (error) {
+        console.error('Failed to leave space:', error)
+        this.leaveError = error.response?.data?.error || 'Failed to leave space. Please try again.'
+      } finally {
+        this.isLeaving = false
+      }
+    },
+
 
     async handleCreateSpace() {
       this.isCreating = true
@@ -662,11 +715,16 @@ export default {
           }
         });
 
-        // Remove the post from the local userPosts array
-        this.userPosts = this.userPosts.filter(p => p._id !== postId);
+        // Remove the post from the appropriate array based on current view
+        if (this.viewingSpace) {
+          // If in space view, remove from spacePosts
+          this.spacePosts = this.spacePosts.filter(p => p._id !== postId);
+        } else if (this.showUserPosts) {
+          // If in user posts view, remove from userPosts
+          this.userPosts = this.userPosts.filter(p => p._id !== postId);
+        }
 
         this.deletePostSuccess = 'Post deleted successfully!';
-        // Small timeout for user to see success message, then clear it.
         setTimeout(() => {
           this.deletePostSuccess = '';
         }, 1500);
@@ -675,7 +733,7 @@ export default {
         console.error('Failed to delete post:', error);
         this.deletePostError = error.response?.data?.error || 'Failed to delete post. Please try again.';
         if (error.response?.status === 401) {
-          this.logout(); // Redirect to login if unauthorized
+          this.logout();
         }
       } finally {
         this.isDeletingPost = null;
@@ -940,5 +998,56 @@ export default {
       this.isLoadingFeed = false;
     }
   },
+
+  async openMembersModal() {
+    this.showMembersModal = true;
+    this.membersError = '';
+    this.isLoadingMembers = true;
+    
+    try {
+      const response = await axios.get(`http://localhost:3001/space/${this.viewingSpace._id}/members`);
+      this.spaceMembers = response.data;
+    } catch (error) {
+      console.error('Failed to load members:', error);
+      this.membersError = 'Failed to load members. Please try again.';
+    } finally {
+      this.isLoadingMembers = false;
+    }
+  },
+  
+  closeMembersModal() {
+    this.showMembersModal = false;
+    this.spaceMembers = [];
+    this.membersError = '';
+  },
+  
+  async removeMember(memberId) {
+    if (confirm('Are you sure you want to remove this member from the space?')) {
+      this.removingMemberId = memberId;
+      
+      try {
+        await axios.post(`http://localhost:3001/space/${this.viewingSpace._id}/remove-member`, {
+          memberId,
+          creatorId: this.userId // For authorization check
+        });
+        
+        // Remove from local list
+        this.spaceMembers = this.spaceMembers.filter(m => m._id !== memberId);
+        
+        // Update the viewingSpace member count
+         this.viewingSpace.members = this.viewingSpace.members.filter(m => {
+          // Handle both cases: m could be an ID string or an object with _id
+          const memberIdToCompare = typeof m === 'string' ? m : m._id;
+          return memberIdToCompare !== memberId;
+        });
+        
+      } catch (error) {
+        console.error('Failed to remove member:', error);
+        alert('Failed to remove member. Please try again.');
+      } finally {
+        this.removingMemberId = null;
+      }
+    }
+  }
   }
 }

@@ -132,30 +132,43 @@ router.put('/:postId', auth, async (req, res) => {
     }
 });
 
-
 // Route 5: Delete a post
 router.delete('/:postId', auth, async (req, res) => {
     try {
         const { postId } = req.params;
         const userId = req.user.id;
 
+        // First, get the post without populating to check authorization
         const post = await Post.findById(postId);
 
         if (!post) {
             return res.status(404).json({ error: 'Post not found.' });
         }
 
-        if (post.authorId._id.toString() !== userId) { // Compare ObjectId to string
+        // Check if user is the post author
+        const isAuthor = post.authorId.toString() === userId;
+        
+        // To check if user is space creator, we need to fetch the space
+        let isSpaceCreator = false;
+        if (post.spaceId) {
+            const space = await Space.findById(post.spaceId);
+            if (space && space.creatorId) {
+                isSpaceCreator = space.creatorId.toString() === userId;
+            }
+        }
+
+        if (!isAuthor && !isSpaceCreator) {
             return res.status(403).json({ error: 'Not authorized to delete this post.' });
         }
 
+        // Delete the post
         await Post.findByIdAndDelete(postId);
 
         // Remove post reference from user's posts array
         await User.findByIdAndUpdate(
             post.authorId,
-            { $pull: { posts: post._id } },
-            { new: true, useFindAndModify: false }
+            { $pull: { posts: postId } },
+            { new: true }
         );
 
         res.status(200).json({ message: 'Post deleted successfully.' });

@@ -51,6 +51,42 @@ router.post('/join', async (req, res) => {
   }
 });
 
+//route for leaving a space
+router.post('/leave', async (req, res) => {
+  const { userId, spaceId } = req.body;
+  
+  try {
+    if (!userId || !spaceId) {
+      return res.status(400).json({ error: 'User ID and Space ID are required' });
+    }
+    
+    const userUpdate = await User.findByIdAndUpdate(
+      userId, 
+      { $pull: { spaces: spaceId } },
+      { new: true }
+    );
+    
+    const spaceUpdate = await Space.findByIdAndUpdate(
+      spaceId, 
+      { $pull: { members: userId } },
+      { new: true }
+    );
+    
+    if (!userUpdate || !spaceUpdate) {
+      return res.status(404).json({ error: 'User or Space not found' });
+    }
+    
+    res.status(200).json({ 
+      message: 'Successfully left the space',
+      user: userUpdate,
+      space: spaceUpdate
+    });
+    
+  } catch (err) {
+    console.error('Error leaving space:', err);
+    res.status(500).json({ error: 'Failed to leave space' });
+  }
+});
 
 
 router.get('/search', async (req, res) => {
@@ -102,6 +138,64 @@ router.get('/:id', async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch space:', err);
     res.status(500).json({ error: 'Failed to fetch space' });
+  }
+});
+
+router.get('/:id/members', async (req, res) => {
+  try {
+    const space = await Space.findById(req.params.id)
+      .populate('members', 'username email')
+      .lean();
+    
+    if (!space) {
+      return res.status(404).json({ error: 'Space not found' });
+    }
+    
+    res.json(space.members);
+  } catch (err) {
+    console.error('Failed to fetch members:', err);
+    res.status(500).json({ error: 'Failed to fetch members' });
+  }
+});
+
+router.post('/:id/remove-member', async (req, res) => {
+  const { memberId, creatorId } = req.body;
+  const spaceId = req.params.id;
+  
+  try {
+    // First, verify that the requester is the creator
+    const space = await Space.findById(spaceId);
+    
+    if (!space) {
+      return res.status(404).json({ error: 'Space not found' });
+    }
+    
+    if (space.creatorId.toString() !== creatorId) {
+      return res.status(403).json({ error: 'Only the space creator can remove members' });
+    }
+    
+    // Can't remove the creator
+    if (memberId === creatorId) {
+      return res.status(400).json({ error: 'Cannot remove the creator from the space' });
+    }
+    
+    // Remove member from space
+    await Space.findByIdAndUpdate(
+      spaceId,
+      { $pull: { members: memberId } }
+    );
+    
+    // Remove space from user's spaces
+    await User.findByIdAndUpdate(
+      memberId,
+      { $pull: { spaces: spaceId } }
+    );
+    
+    res.status(200).json({ message: 'Member removed successfully' });
+    
+  } catch (err) {
+    console.error('Failed to remove member:', err);
+    res.status(500).json({ error: 'Failed to remove member' });
   }
 });
 

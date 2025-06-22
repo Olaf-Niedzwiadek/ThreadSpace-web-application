@@ -163,9 +163,63 @@
                 <span>Members: <strong>{{ viewingSpace.members.length }}</strong></span>
                 <span>Created on: <strong>{{ formatDate(viewingSpace.createdAt) }}</strong></span>
               </div>
-              <button class="create-post-button" @click="toggleCreatePostForm">
-                {{ showCreatePostForm ? 'Cancel Post' : 'Create New Post' }}
+              <div class="button-container">
+                <button class="create-post-button" @click="toggleCreatePostForm">
+                  {{ showCreatePostForm ? 'Cancel Post' : 'Create New Post' }}
+                </button>
+                <button 
+                  v-if="viewingSpace.creatorId._id === userId" 
+                  class="leave-space-button" 
+                  @click="openMembersModal"
+                >
+                  Inspect Users
+                </button>
+                <button 
+                  v-else 
+                  class="leave-space-button" 
+                  @click="leaveSpace" 
+                  :disabled="isLeaving"
+                >
+                {{ isLeaving ? 'Leaving...' : 'Leave Space' }}
               </button>
+              </div>
+            </div>
+
+            <div v-if="showMembersModal" class="modal-overlay" @click="closeMembersModal">
+              <div class="members-modal" @click.stop>
+                <div class="modal-header">
+                  <h3>Space Members ({{ spaceMembers.length }})</h3>
+                  <button class="close-button" @click="closeMembersModal">×</button>
+                </div>
+                
+                <div v-if="isLoadingMembers" class="loading-members">
+                  Loading members...
+                </div>
+                
+                <div v-else-if="membersError" class="error-message">
+                  {{ membersError }}
+                </div>
+                
+                <div v-else class="members-list">
+                  <div v-for="member in spaceMembers" :key="member._id" class="member-item">
+                    <div class="member-info">
+                      <span class="member-username">{{ member.username }}</span>
+                      <span v-if="member._id === viewingSpace.creatorId._id" class="creator-badge">Creator</span>
+                    </div>
+                    <div class="member-actions">
+                      <!-- You can add remove button here later if needed -->
+                      <button 
+                        v-if="member._id !== viewingSpace.creatorId._id && member._id !== userId"
+                        class="remove-member-btn"
+                        @click="removeMember(member._id)"
+                        :disabled="removingMemberId === member._id"
+                      >
+                        {{ removingMemberId === member._id ? 'Removing...' : 'Remove' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div v-if="showCreatePostForm" class="create-post-form">
@@ -249,6 +303,13 @@
                       :disabled="!userId"
                     >
                       👎 {{ post.downvoteCount }}
+                    </button>
+                    <button 
+                      v-if="viewingSpace.creatorId._id === userId"
+                      class="delete-button" 
+                      @click="confirmDeletePost(post)"
+                    >
+                      Delete
                     </button>
                   </div>
 
